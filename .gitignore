@@ -2,3 +2,6 @@ build/
 cmake-build*/
 .idea/
 imgui.ini
+
+*/bin/
+*.DS_Store
