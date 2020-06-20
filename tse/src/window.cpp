@@ -83,7 +83,7 @@ window::window(string&& title, uint32_t width, uint32_t height) :
     dialogs(),
     edge_remove_percentage(10.0f),
     surface_resolution(1),
-    cube_size(5),
+    cube_size(10),
     evaluator(tmesh_cube(static_cast<size_t>(cube_size))),
     camera()
 {

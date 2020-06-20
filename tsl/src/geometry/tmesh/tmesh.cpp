@@ -621,6 +621,8 @@ size_t tmesh::get_extended_valence(vertex_handle handle) const {
     uint32_t valence = 0;
     for (const auto& e: get_half_edges_of_vertex(handle, edge_direction::ingoing)) {
         valence += 1;
+        // (1) corner is defined on half-edges AND
+        // (2) halfedge is not a corner of the given face
         if (corner(e) && !*corner(e)) {
             valence += 1;
         }
