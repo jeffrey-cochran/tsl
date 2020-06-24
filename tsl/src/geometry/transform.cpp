@@ -32,7 +32,7 @@ vec2 rotate(uint8_t times, const vec2& vec) {
             break;
         }
         default:
-            // Catches case 0, where the input stays the same
+            // Catches case 0 and case 4, where the input stays the same
             break;
     }
     return out;

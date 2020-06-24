@@ -115,21 +115,34 @@ array<vec3, 3> surface_evaluator::eval_bsplines_point(double u, double v, face_h
     double d = 0;
     double du = 0;
     double dv = 0;
+    // vector of u and v location on the face
     vec2 in(u, v);
 
+    // degree of splines
+    int DEGREE = 3;
+
+    // TODO determine what this is
     const auto& supports = support[f];
     for (const auto& [vertex, idx, trans]: supports) {
         const auto& local_knots = knot_vectors[vertex][idx];
 
+	// value of the control point at this vertex position
         const auto& p = mesh.get_vertex_position(vertex);
+	// transform the input u and v coordinates for consistency 
+	// (say across cuts)
         auto transformed = trans.apply(in);
+        
+	// extract the value of the basis function at the given location
+        auto u_basis = get_bspline_with_der<DEGREE>(transformed.x, local_knots.u);
+        auto v_basis = get_bspline_with_der<DEGREE>(transformed.y, local_knots.v);
 
-        auto u_basis = get_bspline_with_der<3>(transformed.x, local_knots.u);
-        auto v_basis = get_bspline_with_der<3>(transformed.y, local_knots.v);
-
+	// contribution of this basis (and its associated control point) to the surface evaluation
         c += u_basis.x * v_basis.x * p;
-        d += u_basis.x * v_basis.x;
+        // normalization term (should be 1 for analysis-suitable T-splines)
+	d += u_basis.x * v_basis.x;
 
+	// based on whether a rotation occured, adjust the basis information
+	// TODO -- determine what these values are
         switch (trans.r) {
             case 0:
             case 4:
@@ -161,6 +174,8 @@ array<vec3, 3> surface_evaluator::eval_bsplines_point(double u, double v, face_h
         }
     }
 
+    // return point of evaluation (normalized because we assume d != 1)
+    // TODO -- product rule of some sort? why does it not include case = 0?
     return {
         c / d,
         ((cdu * d) - (c * du)) / (d * d),
@@ -463,23 +478,41 @@ void surface_evaluator::report_error(const string& msg) const {
 // = Routines from paper
 // ========================================================================
 
+// assign uv coordinates to each face
 void surface_evaluator::calc_local_coords() {
+    // clear the storage map taking a half-edge handle to a uv coordinate
     uv.clear();
     uv.reserve(mesh.num_half_edges());
+    // clear the storage map taking a half-edge handle to a direction 
+    // (+u = 0, +v = 1, -u = 2, -v = 3)
     dir.clear();
     dir.reserve(mesh.num_half_edges());
 
+    // iterate on all edges of the face
     for (const auto& fh: mesh.get_faces()) {
+	// assume initial knot coordinate of (0,0)
         vec2 c(0, 0);
+	// start in the positive u direction
         uint8_t i = 0;
 
+	// iterate over all half-edges of the face
         for (const auto& eh: mesh.get_half_edges_of_face(fh)) {
+            // currently, we expect no half-edges with knot interval of 0
+	    // TODO -- adjust this!
+	    //      -- when adjusted, we may need an index map
+	    // This actually may just mean that we need knot intervals defined on the mesh...
             auto k = expect(mesh.get_knot_interval(eh), EXPECT_NO_BORDER);
+	    // rotate the vector by pi/2 * i and add to current position 
             c += rotate(i, vec2(k, 0));
 
+	    // store this position
             uv.insert(eh, c);
+	    // store the direction
             dir.insert(eh, i);
 
+	    // if the edge handle terminates at a corner, iterate by 90 degrees
+	    // TODO -- I do not think that we need an EXPECT_NO_BORDER exception here
+	    //      -- probably more like an expected corners exception
             if (expect(mesh.corner(eh), EXPECT_NO_BORDER)) {
                 i += 1;
             }
@@ -488,14 +521,24 @@ void surface_evaluator::calc_local_coords() {
 }
 
 void surface_evaluator::calc_edge_trans() {
+    // compute the transformation from one edge to the other
     edge_trans.clear();
     edge_trans.reserve(mesh.num_half_edges());
 
+    // iterate over each halfedge
     for (const auto& eh: mesh.get_half_edges()) {
+	// find the opposite halfedge
         auto twin = mesh.get_twin(eh);
+	// assure that knots are defined on both knot and its twin
+	// if so, find scaling from this half-edge to the opposite half-edge
         auto f = expect(mesh.get_knot_factor(twin), EXPECT_NO_BORDER);
+	// if coordinate systems are the same, the twin will travel in the opposite direction of
+	// the current, so there will be no additional rotation; otherwise, account for rotations
         auto r = static_cast<uint8_t>((dir[twin] - dir[eh] + 6) % 4);
+	// translation from one coordinate system to the next
+	// TODO -- check that this is correct
         auto t = uv[mesh.get_prev(twin)] - (f * rotate(r, uv[eh]));
+	// return transformation map across the face
         edge_trans.insert(eh, transform(f, r, t));
     }
 }
@@ -503,23 +546,38 @@ void surface_evaluator::calc_edge_trans() {
 basis_fun_trans_map surface_evaluator::setup_basis_funs() {
     basis_fun_trans_map transforms{vector<transform>()};
 
+    // reserve a basis function for each vertex in the mesh
     handles.clear();
     handles.reserve(mesh.num_vertices());
+    // transformations on basis functions
+    // TODO -- understand purpose here
     transforms.reserve(mesh.num_vertices());
 
+    // iterate over all vertices
     for (const auto& vh: mesh.get_vertices()) {
-        handles.insert(vh, vector<tuple<half_edge_handle, tag>>());
+        // create a vector describing all half-edges going through this
+	handles.insert(vh, vector<tuple<half_edge_handle, tag>>());
         handles[vh].reserve(mesh.get_valence(vh));
+	// iterate on outgoing halfedges
         for (const auto& eh: mesh.get_half_edges_of_vertex(vh, edge_direction::outgoing)) {
-            handles[vh].emplace_back(eh, tag::positive_u);
+            // find the transformation that takes the outgoing halfedge from this vertex
+	    // on this face to the face's half-edge emanating from (0,0) in the positive u direction
+	    handles[vh].emplace_back(eh, tag::positive_u);
             auto r = static_cast<uint8_t>(4 - dir[eh]);
             auto t = -rotate(r, uv[mesh.get_prev(eh)]);
+	    // scaling is one because on each face, coordinate systems are consistent
             transforms[vh].emplace_back(1, r, t);
 
+	    // look at the opposite halfedge
             auto twin = mesh.get_twin(eh);
+	    // TODO -- determine why this is necessary
+	    // if it does not point into a corner, mark the next as negative v
+	    // THIS IMPLICITLY ASSUMES AT MOST ONE T-JUNCTION PER FACE; THIS MAY NEED MODIFICATION 
             if (!expect(mesh.corner(twin), EXPECT_NO_BORDER)) {
                 auto next_of_twin = mesh.get_next(twin);
                 handles[vh].emplace_back(next_of_twin, tag::negative_v);
+		// transformation taking the outgoing halfedge from this vertex on this face to the
+		// face's half-edge gong to (0,0) in the negative v direction
                 r = static_cast<uint8_t>((4 - dir[next_of_twin] - 1) % 4);
                 t = -rotate(r, uv[twin]);
                 transforms[vh].emplace_back(1, r, t);

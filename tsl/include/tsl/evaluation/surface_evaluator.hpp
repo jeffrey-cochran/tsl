@@ -160,8 +160,10 @@ private:
     /// Used tmesh.
     tmesh mesh;
     /// uv coords map
+    //  this maps each half-edge to the u-v coordinate of its ToVertex
     coord_map uv;
     /// direction map
+    //  this maps each half-edge to the direction in which it is traveling on a face
     dir_map dir;
     /// edge transitions
     edge_trans_map edge_trans;
