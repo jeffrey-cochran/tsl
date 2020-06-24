@@ -119,7 +119,7 @@ array<vec3, 3> surface_evaluator::eval_bsplines_point(double u, double v, face_h
     vec2 in(u, v);
 
     // degree of splines
-    int DEGREE = 3;
+    const int DEGREE = 3;
 
     // TODO determine what this is
     const auto& supports = support[f];
