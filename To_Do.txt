@@ -1,0 +1,37 @@
+This document includes a number of projects that need to be completed for full functionality.
+They are written in the order in which they were found, as opposed to the order in which they should be done.
+
+(1) The viewer does not properly render T-splines--particularly at EPs and at T-junctions.
+    While the EP treatment is a whole different story, the T-junction one is one that is reasonably fixable
+    
+    x---------------x--------------------x
+    |               |                    | 
+    |               |                    | 
+    |               |                    | 
+    |               |                    | 
+    |               |                    | 
+    x---------------x--------------------x
+    |                                    |
+    |                                    |
+    |                                    |
+    |                                    |
+    |                                    |
+    |                                    |
+    x-------------------------x----------x
+    |                         |          |
+    |                         |          |
+    |                         |          |
+    |                         |          |
+    |                         |          |
+    |                         |          |
+    |                         |          |
+    |                         |          |
+    x-------------------------x----------x
+
+    Here, each face is sampled uniformly based on input resolution.
+    Clearly, the resloution will be more sparse on the middle face compared to the other faces.
+    Furthermore, typically vertices will not align along opposite sides of the same edge.
+    Instead, an (unstructured) triangular mesh needs to be extracted which picks resolution
+       along edges consistently based on some input resolution (so vertices on either side of an edge will align)
+       and then the interior triangulation is selected via some unstructured generator
+    Under this paradigm, the visualization around T-junctions should be fixed and continuity of the surface will be clear.

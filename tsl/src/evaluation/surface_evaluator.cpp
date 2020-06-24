@@ -588,6 +588,12 @@ basis_fun_trans_map surface_evaluator::setup_basis_funs() {
     return transforms;
 }
 
+// Extract two knot intervals on either side of the vertex
+//   for use in computation of spans and basis functions
+// Based on computations from setup_basis_funs(), this will
+//   first follow a half-edge on a face and then perform any
+//   T-junction operations on the same face, if they exist
+// TODO -- Change from hard-coding on degree three polynomials
 void surface_evaluator::calc_knots() {
     knots.clear();
     knots.reserve(handles.num_values() * 2);
@@ -598,11 +604,15 @@ void surface_evaluator::calc_knots() {
         for (auto [h, q]: handles[vh]) {
             double s = 0;
             uint32_t j = 1;
+	    // put a zero value at the back
             knots[vh].emplace_back();
             auto& current_knot = knots[vh].back();
 
             // no edge in u direction (T-joint), so walk “around” face
-            if (q == tag::negative_v) {
+            // more accurately -- walk to the next corner while accounting for
+	    //  -- knot interval displacement (s)
+	    //  -- halfedge (h)
+	    if (q == tag::negative_v) {
                 while (!expect(mesh.from_corner(h), EXPECT_NO_BORDER)) {
                     s += expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER);
                     h = mesh.get_next(h);
@@ -610,6 +620,7 @@ void surface_evaluator::calc_knots() {
             }
 
             bool skip = false;
+	    bool visited_once = false;
             do {
                 current_knot[j - 1] += expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER);
 
@@ -617,6 +628,7 @@ void surface_evaluator::calc_knots() {
                 if (s == 0) {
                     j += 1;
                 }
+		
 
                 if (j > 2) {
                     skip = true;
@@ -624,6 +636,12 @@ void surface_evaluator::calc_knots() {
                 }
 
                 h = mesh.get_next(h);
+		if (visited_once && j <= 2)
+		{
+		    const string fail = "Cannot have two t-junctions on the same face in opposite directions";
+		    panic(fail);
+		}
+		visited_once = true;
             } while(!expect(mesh.from_corner(h), EXPECT_NO_BORDER));
 
             if (skip) {
@@ -632,14 +650,17 @@ void surface_evaluator::calc_knots() {
 
             j = 2;
 
+	    // iterate to the portion of the mesh that corresponds to the current T-junction
             while (s >= expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER)) {
                 s -= expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER);
                 h = mesh.get_next(h);
             }
 
+	    // flip to the next face
             auto f = expect(mesh.get_knot_factor(h), EXPECT_NO_BORDER);
             h = mesh.get_twin(h);
 
+            // iterate to next corner (so the same direction as current knot vector)
             while (!expect(mesh.corner(h), EXPECT_NO_BORDER)) {
                 h = mesh.get_next(h);
                 s += f * expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER);
@@ -647,6 +668,7 @@ void surface_evaluator::calc_knots() {
 
             h = mesh.get_next(h);
             skip = false;
+	    visited_once = false;
             do {
                 current_knot[j - 1] += f * expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER);
 
@@ -654,7 +676,13 @@ void surface_evaluator::calc_knots() {
                     skip = true;
                     break;
                 }
+		if(visited_once)
+		{
+		    const string fail = "Extended T-junctions intersect; this problem must now be addressed";
+		    panic(fail);
+		}
 
+		visited_once = true;
                 h = mesh.get_next(h);
             } while(!expect(mesh.from_corner(h), EXPECT_NO_BORDER));
 
@@ -664,6 +692,7 @@ void surface_evaluator::calc_knots() {
         }
     }
 }
+
 
 void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
     support.clear();
@@ -694,12 +723,16 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
             auto r = get_parametric_domain(vh, handle_index);
 
             // Cache local knot vectors for faster surface evaluation
-            knot_vectors[vh].push_back(get_knot_vectors(vh, handle_index));
+            // these are computed from the knot intervals on adjacent faces
+	    knot_vectors[vh].push_back(get_knot_vectors(vh, handle_index));
 
             while (!bfs_queue.empty()) {
+		// current half-edge and current transformation
                 auto [ch, ct] = bfs_queue.front();
                 bfs_queue.pop();
+		// face of the current half-edge
                 auto cface_h = mesh.get_face_of_half_edge(ch).expect(EXPECT_NO_BORDER);
+		// add this face to the support if it has not already been added
                 if (!support.contains_key(cface_h)) {
                     support.insert(cface_h, vector<tuple<vertex_handle, index, transform>>());
                 }
