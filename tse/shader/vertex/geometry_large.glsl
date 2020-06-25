@@ -14,7 +14,7 @@ uniform vec3 camera_pos;
 uniform vec3 camera_up;
 uniform mat4 VP;
 
-const float POINT_THICKNESS = 0.08f;
+const float POINT_THICKNESS = 0.2f;
 
 void main() {
 

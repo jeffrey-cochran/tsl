@@ -559,7 +559,7 @@ void window::draw_gui() {
 
     if (dialogs.settings) {
         ImGui::SetNextWindowPos(ImVec2(0, 30), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSizeConstraints(ImVec2(450, 0), ImVec2(width, height));
+        ImGui::SetNextWindowSizeConstraints(ImVec2(500, 0), ImVec2(width, height));
 
         if (ImGui::Begin("Settings", &dialogs.settings)) {
             ImGui::Checkbox("Wireframe mode", &wireframe_mode);
@@ -589,6 +589,13 @@ void window::draw_gui() {
                 evaluator = surface_evaluator(tmesh_cube(static_cast<size_t>(cube_size)));
                 update_buffer();
             }
+
+	   if (ImGui::InputInt("Vertex Size: 0 to 3", &vertex_size, 1, 1)) {
+		if (vertex_size < 0) {
+		    vertex_size = 0;
+		} 
+                adjust_vertex_geometry();
+	    }
 
             auto& app = application::get_instance();
             auto last_num_frames = app.get_last_num_frames();
@@ -1260,6 +1267,38 @@ void window::open_file_dialog_and_load_selected_file() {
             pfd::message("Problem", format("An error occurred while loading: {}\n{}", files[0], e.what()), pfd::choice::ok, pfd::icon::error);
         }
     }
+}
+
+void window::adjust_vertex_geometry() {
+    auto vertex_shader = create_shader("shader/vertex.glsl", GL_VERTEX_SHADER);
+    auto fragment_shader = create_shader("shader/fragment.glsl", GL_FRAGMENT_SHADER);
+    auto vertex_picking_shader = create_shader("shader/picking/vertex.glsl", GL_VERTEX_SHADER);
+    auto fragment_picking_shader = create_shader("shader/picking/fragment.glsl", GL_FRAGMENT_SHADER);
+    string shader_path = "";
+    std::cout << vertex_size << std::endl;
+    switch (vertex_size) {
+        case 0: {
+	    shader_path = "shader/vertex/geometry_small.glsl";
+	    break;
+	}
+	case 1: {
+	    shader_path = "shader/vertex/geometry.glsl";
+	    break;
+	}
+	case 2: {
+	    shader_path = "shader/vertex/geometry_large.glsl";
+	    break;
+	}
+	default: {
+	    shader_path = "shader/vertex/geometry_xlarge.glsl";
+	    break;
+	}
+    }
+
+    auto vertex_geometry_shader = create_shader(shader_path, GL_GEOMETRY_SHADER);
+
+    vertex_program = create_program({vertex_shader, fragment_shader, vertex_geometry_shader});
+    vertex_picking_program = create_program({vertex_picking_shader, fragment_picking_shader, vertex_geometry_shader});
 }
 
 }

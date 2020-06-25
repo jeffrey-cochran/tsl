@@ -223,6 +223,8 @@ private:
     resolution<uint32_t> surface_resolution;
     /// Size of cube loaded at start
     int cube_size;
+    /// Size of vertices loaded
+    int vertex_size = 1;
     /// Surface evaluator.
     surface_evaluator evaluator;
 
@@ -313,6 +315,11 @@ private:
      * @brief Opens a file selection dialog and loads the selected quadmesh into a tmesh.
      */
     void open_file_dialog_and_load_selected_file();
+
+    /**
+     * @brief Selects the vertex geometry shader to be loaded
+     */
+    void adjust_vertex_geometry();
 };
 
 }
