@@ -4,8 +4,12 @@ project(tsl VERSION 1.0.0 LANGUAGES CXX)
 # enable C++17 standard
 set(CMAKE_CXX_STANDARD 17)
 
-# deps
-find_package(BLAS REQUIRED)
+# Load OpenBLAS
+set(OpenBLAS_DIR /usr/local/lib/lib/cmake/openblas)
+find_package(OpenBLAS REQUIRED)
+include_directories(${OpenBLAS_INCLUDE_DIRS})
+
+# other deps
 include_directories(ext/tinyobjloader)
 if (NOT TARGET glm)
     add_subdirectory(ext/glm EXCLUDE_FROM_ALL)
