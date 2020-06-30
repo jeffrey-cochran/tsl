@@ -373,6 +373,7 @@ aa_rectangle surface_evaluator::get_parametric_domain(vertex_handle handle, size
     auto face_h = mesh.get_face_of_half_edge(h).expect(EXPECT_NO_BORDER);
 
     // Get neighbouring face
+    // -1 means the face -1 cw (+1 ccw)
     auto wrapped_index = (handles[handle].size() + handle_index - 1) % handles[handle].size();
     auto [nh, nq] = handles[handle][wrapped_index];
     auto nface_h = mesh.get_face_of_half_edge(nh).expect(EXPECT_NO_BORDER);
@@ -392,6 +393,9 @@ aa_rectangle surface_evaluator::get_parametric_domain(vertex_handle handle, size
 
 local_knot_vectors surface_evaluator::get_knot_vectors(vertex_handle handle, size_t handle_index) const {
     // Note on variable names: a number i at the end means "domain + i" and a _i number means "domain - i"
+
+    // TODO: this assumes that there are no borders;
+    //       this needs to be adjusted in the case of borders
 
     // Get half edge and face corresponding to the current handle
     auto [edge_h0, tag0] = handles[handle][handle_index];
@@ -688,6 +692,11 @@ void surface_evaluator::calc_knots() {
             auto f = expect(mesh.get_knot_factor(h), EXPECT_NO_BORDER);
             h = mesh.get_twin(h);
 
+	    // the next face is on the border, so it has an implicit knot interval of 0
+	    if (!mesh.get_face_of_half_edge(h)) {
+	        current_knot[j - 1] = 0;
+		continue;
+	    }
             // iterate to next corner (so the same direction as current knot vector)
             while (!expect(mesh.corner(h), EXPECT_NO_BORDER)) {
                 h = mesh.get_next(h);
