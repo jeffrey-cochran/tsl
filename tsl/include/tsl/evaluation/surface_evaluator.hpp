@@ -20,7 +20,8 @@ namespace tsl {
  */
 enum class tag {
     positive_u,
-    negative_v
+    negative_v,
+    border
 };
 
 /**

@@ -529,17 +529,25 @@ void surface_evaluator::calc_edge_trans() {
     for (const auto& eh: mesh.get_half_edges()) {
 	// find the opposite halfedge
         auto twin = mesh.get_twin(eh);
-	// assure that knots are defined on both knot and its twin
-	// if so, find scaling from this half-edge to the opposite half-edge
-        auto f = expect(mesh.get_knot_factor(twin), EXPECT_NO_BORDER);
-	// if coordinate systems are the same, the twin will travel in the opposite direction of
-	// the current, so there will be no additional rotation; otherwise, account for rotations
-        auto r = static_cast<uint8_t>((dir[twin] - dir[eh] + 6) % 4);
-	// translation from one coordinate system to the next
-	// TODO -- check that this is correct
-        auto t = uv[mesh.get_prev(twin)] - (f * rotate(r, uv[eh]));
-	// return transformation map across the face
-        edge_trans.insert(eh, transform(f, r, t));
+	// if twin or its opposite are on a border, make the transformation null
+	if (!mesh.get_face_of_half_edge(eh) || !mesh.get_face_of_half_edge(twin)) { 
+	    vec2 c(0,0);
+            edge_trans.insert(eh, transform(1, 0, c));
+        }
+	// neither the twin nor its opposite are on a border
+	else {
+	    // assure that knots are defined on both knot and its twin
+	    // if so, find scaling from this half-edge to the opposite half-edge
+	    auto f = expect(mesh.get_knot_factor(twin), EXPECT_NO_BORDER);
+	    // if coordinate systems are the same, the twin will travel in the opposite direction of
+	    // the current, so there will be no additional rotation; otherwise, account for rotations
+	    auto r = static_cast<uint8_t>((dir[twin] - dir[eh] + 6) % 4);
+	    // translation from one coordinate system to the next
+	    // TODO -- check that this is correct
+	    auto t = uv[mesh.get_prev(twin)] - (f * rotate(r, uv[eh]));
+	    // return transformation map across the face
+	    edge_trans.insert(eh, transform(f, r, t));
+	}
     }
 }
 
@@ -560,7 +568,14 @@ basis_fun_trans_map surface_evaluator::setup_basis_funs() {
         handles[vh].reserve(mesh.get_valence(vh));
 	// iterate on outgoing halfedges
         for (const auto& eh: mesh.get_half_edges_of_vertex(vh, edge_direction::outgoing)) {
-            // find the transformation that takes the outgoing halfedge from this vertex
+            // if this is on a border, it as on the border
+	    if (!mesh.get_face_of_half_edge(eh)) {
+	        handles[vh].emplace_back(eh, tag::border);
+		vec2 c(0, 0);
+		transforms[vh].emplace_back(1, 0, c);
+		continue;
+	    }
+	    // find the transformation that takes the outgoing halfedge from this vertex
 	    // on this face to the face's half-edge emanating from (0,0) in the positive u direction
 	    handles[vh].emplace_back(eh, tag::positive_u);
             auto r = static_cast<uint8_t>(4 - dir[eh]);
@@ -573,7 +588,8 @@ basis_fun_trans_map surface_evaluator::setup_basis_funs() {
 	    // TODO -- determine why this is necessary
 	    // if it does not point into a corner, mark the next as negative v
 	    // THIS IMPLICITLY ASSUMES AT MOST ONE T-JUNCTION PER FACE; THIS MAY NEED MODIFICATION 
-            if (!expect(mesh.corner(twin), EXPECT_NO_BORDER)) {
+            // Correction: This assumes that T-junctions extensions are described by the negative_v tag
+	    if (!expect(mesh.corner(twin), EXPECT_NO_BORDER)) {
                 auto next_of_twin = mesh.get_next(twin);
                 handles[vh].emplace_back(next_of_twin, tag::negative_v);
 		// transformation taking the outgoing halfedge from this vertex on this face to the
@@ -607,6 +623,18 @@ void surface_evaluator::calc_knots() {
 	    // put a zero value at the back
             knots[vh].emplace_back();
             auto& current_knot = knots[vh].back();
+
+	    // border halfedge; knots are 0,0
+	    if (q == tag::border) {
+		auto twin = mesh.get_twin(h);
+		current_knot[j - 1] += expect(mesh.get_knot_interval(twin), EXPECT_NO_BORDER);
+	        j += 1;
+		
+		auto next = mesh.get_next(h);
+		twin = mesh.get_twin(h);
+		current_knot[j - 1] += expect(mesh.get_knot_interval(twin), EXPECT_NO_BORDER);	
+	        continue;
+	    }
 
             // no edge in u direction (T-joint), so walk “around” face
             // more accurately -- walk to the next corner while accounting for
