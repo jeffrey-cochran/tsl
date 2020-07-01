@@ -43,21 +43,30 @@ vector<regular_grid> surface_evaluator::eval_per_face(uint32_t res) const {
     for (const auto& fh: mesh.get_faces()) {
         auto contains_extraordinary_vertex = false;
         auto contains_invalid_valence = false;
+	auto contains_v2_border_ep = false;
         vertices_buffer.clear();
         mesh.get_vertices_of_face(fh, vertices_buffer);
         for (const auto& vh: vertices_buffer) {
+	    auto border_vertex = mesh.is_border_vertex(vh);
+	    int ext_valence = mesh.get_extended_valence(vh);
             if (mesh.is_extraordinary(vh)) {
                 contains_extraordinary_vertex = true;
             }
+
+	    // TODO -- there is potential for a valence 2 ep border face to have another vertex that is extraordinary;
+	    // fix this
+	    if(border_vertex && ext_valence == 2) {
+	        contains_v2_border_ep = true;
+	    }
             // TODO: this will be fixed, when evaluation near borders is implemented; or not: if not, we should throw
             //       a warning!
-            if (mesh.get_valence(vh) < 3) {
+            if ((!border_vertex && ext_valence < 3) || (border_vertex && ext_valence > 3)) {
                 contains_invalid_valence = true;
                 report_error(format("invalid valence at vertex with handle id: {}", vh.get_idx()));
             }
         }
 
-        if (contains_extraordinary_vertex) {
+        if (contains_extraordinary_vertex && !contains_v2_border_ep) {
             if (!contains_invalid_valence) {
                 auto grid = eval_subdevision(res, fh);
                 out.emplace_back(grid);
@@ -928,7 +937,12 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
                     }
 
                     auto twin = mesh.get_twin(g);
-                    auto twin_face_h = mesh.get_face_of_half_edge(twin).expect(EXPECT_NO_BORDER);
+		    // if the twin has no face, iterate to the next object
+                    if(!mesh.get_face_of_half_edge(twin)) {
+		        g = mesh.get_next(g);
+			continue;
+		    }
+		    auto twin_face_h = mesh.get_face_of_half_edge(twin).expect(EXPECT_NO_BORDER);
                     if (tagged[twin_face_h]) {
                         g = mesh.get_next(g);
                         continue;

@@ -631,7 +631,13 @@ size_t tmesh::get_extended_valence(vertex_handle handle) const {
 }
 
 bool tmesh::is_extraordinary(vertex_handle handle) const {
-    return get_extended_valence(handle) != 4;
+    auto border_vertex = is_border_vertex(handle);
+    if (border_vertex) {
+        return get_extended_valence(handle) != 3;
+    }
+    else {
+        return get_extended_valence(handle) != 4;
+    }
 }
 
 // ========================================================================
