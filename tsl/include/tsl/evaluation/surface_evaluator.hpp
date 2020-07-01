@@ -211,6 +211,11 @@ private:
     local_knot_vectors get_regular_border_knot_vectors(vertex_handle handle, size_t handle_index) const;
 
     /**
+     * @brief Calculated the knot vectors in u and v direction for the basis function rooted at the given valence 2 border vertex
+     */
+    local_knot_vectors get_valence2_border_knot_vectors(vertex_handle handle, size_t handle_index) const;
+    
+    /**
      * @brief Updates the local cached values, because the mesh structure has changed.
      *
      * This could be updated to only update the cache for some values instead of updating the whole cache.

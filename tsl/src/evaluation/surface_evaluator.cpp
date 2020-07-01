@@ -407,22 +407,28 @@ aa_rectangle surface_evaluator::get_parametric_domain(vertex_handle handle, size
 
 local_knot_vectors surface_evaluator::get_knot_vectors(vertex_handle handle, size_t handle_index) const {
 
-    // TODO: this assumes that there are no borders;
-    //       this needs to be adjusted in the case of borders
     // TODO: this assumes that points are not extraordinary... 
-    //       address the case of extraordinary point
+    //       address the case of extraordinary point,
+    //       including border EPs (but not ones of valence 2)
 
     // determine the extended valence of the vertex
     int extended_valence = mesh.get_extended_valence(handle);
     // determine if the vertex is on a border
     bool border_vert = mesh.is_border_vertex(handle);
 
-//    if (extended_valence == 4 && !border_vert) {
+    // regular border vertex
+    if(extended_valence == 3 && border_vert) {
+        return get_regular_border_knot_vectors(handle, handle_index);
+    }
+    // valence 2 border vertex
+    else if(extended_valence == 2 && border_vert) {
+        return get_valence2_border_knot_vectors(handle, handle_index);
+    }
+    // EP or regular interior vertex
+    // TODO -- address more generalized EPs
+    else {
         return get_regular_internal_knot_vectors(handle, handle_index);
-//    }
-//    else {
-//	panic("Cannot currently operate on the given type of vertex");
-//    }
+    }
 }
 
 local_knot_vectors surface_evaluator::get_regular_internal_knot_vectors(vertex_handle handle, size_t handle_index) const {
@@ -495,9 +501,98 @@ local_knot_vectors surface_evaluator::get_regular_internal_knot_vectors(vertex_h
     return out;
 }
 
-//local_knot_vectors surface_evaluator::get_regular_border_knot_vectors(vertex_handle handle, size_t handle_index) const {
+local_knot_vectors surface_evaluator::get_regular_border_knot_vectors(vertex_handle handle, size_t handle_index) const {
+    // extract the halfedge and tag from the handle
+    auto [edge_h0, tag0] = handles[handle][handle_index];
 
-//}
+    // current call routines demand that this will have a non-empty face
+    auto face_h0 = mesh.get_face_of_half_edge(edge_h0).expect(EXPECT_NO_BORDER);
+
+    // Get half edge and face handle for index + 1 cw
+    auto index1 = (handles[handle].size() + handle_index + 1) % handles[handle].size();
+    auto [edge_h1, tag1] = handles[handle][index1];
+
+    // Get half edge and face handle for index - 1 cw (which is + 1 ccw)
+    auto index_1 = (handles[handle].size() + handle_index - 1) % handles[handle].size();
+    auto [edge_h_1, tag_1] = handles[handle][index_1];
+
+    // Get half edge and face handle for index - 2 cw (which is + 2 ccw)
+    auto index_2 = (handles[handle].size() + handle_index - 2) % handles[handle].size();
+    auto [edge_h_2, tag_2] = handles[handle][index_2];
+
+    auto face_h_1 = mesh.get_face_of_half_edge(edge_h_1).expect(EXPECT_NO_BORDER);
+    // Get two knot values for current handle
+    auto knot01 = knots[handle][handle_index][0];
+    auto knot02 = knots[handle][handle_index][1];
+
+    double knot11 = 0, knot12 = 0, knot_21 = 0, knot_22 = 0;
+    // Get transformation from values from hindex - 1 into domain of handle
+    double transform_0_1 = 1, transform_01 = 1;
+    if (!mesh.get_face_of_half_edge(edge_h_1)) {
+        // we are on a border edge; no transformations necessary
+	// however, we must account for the transverse knot intervals
+	knot_21 = 0;
+        knot_22	= 0;
+
+	// clockwise halfedge must have a valid face
+	auto face_h1 = mesh.get_face_of_half_edge(edge_h1).expect(EXPECT_NO_BORDER);
+	if (face_h0 != face_h1) {
+	    auto edge_between_0_and1 = mesh.get_half_edge_between(face_h0, face_h1).expect(EXPECT_NO_BORDER);
+	    transform_01 = expect(mesh.get_knot_factor(edge_between_0_and1), EXPECT_NO_BORDER);
+	}
+
+	knot11 = knots[handle][index1][0] * transform_01;
+	knot12 = knots[handle][index1][1] * transform_01;
+    }
+    else
+    {
+        knot11 = 0;
+	knot12 = 0;
+
+        auto face_h_1 = mesh.get_face_of_half_edge(edge_h_1).expect(EXPECT_NO_BORDER);
+        // extract appropriate transformation if moving to a different face
+	if (face_h0 != face_h_1) {
+	    auto edge_bewteen_0_and_1 = mesh.get_half_edge_between(face_h0, face_h_1).expect(EXPECT_NO_BORDER);
+	    transform_0_1 = expect(mesh.get_knot_factor(edge_bewteen_0_and_1), EXPECT_NO_BORDER);
+	}
+
+	// 2x ccw halfedge must have invalid face with transformation given by the 1x ccw halfedge face 
+	knot_21 = knots[handle][index_2][0] * transform_0_1;
+	knot_22 = knots[handle][index_2][1] * transform_0_1;
+    }
+
+    // Get two knot values for handle with index - 1 and transform them into the domain of the current handle
+    auto knot_11 = knots[handle][index_1][0] * transform_0_1;
+    auto knot_12 = knots[handle][index_1][1] * transform_0_1;
+
+    local_knot_vectors out(
+        {-knot_21 - knot_22, -knot_21, 0, knot01, knot01 + knot02},
+        {-knot11 - knot12, -knot11, 0, knot_11, knot_11 + knot_12}
+    );
+    return out;
+}
+
+local_knot_vectors surface_evaluator::get_valence2_border_knot_vectors(vertex_handle handle, size_t handle_index) const {
+    // extract the halfedge and tag from the handle
+    auto [edge_h0, tag0] = handles[handle][handle_index];
+
+    // current call routines demand that this will have a non-empty face
+    auto face_h0 = mesh.get_face_of_half_edge(edge_h0).expect(EXPECT_NO_BORDER);
+
+    // Get half edge and face handle for index - 1 cw (which is + 1 ccw)
+    auto index_1 = (handles[handle].size() + handle_index - 1) % handles[handle].size();
+
+    auto knot01 = knots[handle][handle_index][0];
+    auto knot02 = knots[handle][handle_index][1];
+    auto knot_11 = knots[handle][index_1][0];
+    auto knot_12 = knots[handle][index_1][1];
+    
+    local_knot_vectors out(
+        {0, 0, 0, knot01, knot01 + knot02},
+	{0, 0, 0, knot_11, knot_11 + knot_12}
+    );
+    return out;
+}
 
 void surface_evaluator::update_cache() {
     calc_local_coords();
