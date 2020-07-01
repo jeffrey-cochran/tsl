@@ -754,6 +754,18 @@ array<vertex_handle, 2> tmesh::get_vertices_of_half_edge(half_edge_handle edge_h
     return {one_edge.target, get_e(get_twin(edge_h)).target};
 }
 
+bool tmesh::is_border_vertex(vertex_handle vh) const {
+    // iterate over all halfedges of this vertex
+    auto half_edge_handles = get_half_edges_of_vertex(vh, edge_direction::outgoing);
+    for (const auto& heh: half_edge_handles) {
+        if( is_border(heh)) {
+	    return true;
+	}
+    }
+    
+    return false;
+}
+
 // ========================================================================
 // = Get faces
 // ========================================================================

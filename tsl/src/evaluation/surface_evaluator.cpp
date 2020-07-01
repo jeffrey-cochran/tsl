@@ -366,39 +366,72 @@ vector<vertex_handle> surface_evaluator::get_vertices_for_subd(face_handle handl
 }
 
 aa_rectangle surface_evaluator::get_parametric_domain(vertex_handle handle, size_t handle_index) const {
+    // length of knot intervals in the direction of this handle
     auto sum_knot_vectors1 = knots[handle][handle_index][0] + knots[handle][handle_index][1];
 
     // Get face
     auto [h, q] = handles[handle][handle_index];
+    // whenever this is called, we should be on a parametric face
     auto face_h = mesh.get_face_of_half_edge(h).expect(EXPECT_NO_BORDER);
 
     // Get neighbouring face
     // -1 means the face -1 cw (+1 ccw)
     auto wrapped_index = (handles[handle].size() + handle_index - 1) % handles[handle].size();
     auto [nh, nq] = handles[handle][wrapped_index];
-    auto nface_h = mesh.get_face_of_half_edge(nh).expect(EXPECT_NO_BORDER);
 
-    // Only calc the scale factor, if we are NOT at a t-joint
     double scale_factor = 1;
-    if (face_h != nface_h) {
-        auto separating_edge = mesh.get_half_edge_between(face_h, nface_h).expect(EXPECT_NO_BORDER);
-        scale_factor = expect(mesh.get_knot_factor(separating_edge), EXPECT_NO_BORDER);
+    // this half-edge is on a border; no scaling factor necessary
+    if (!mesh.get_face_of_half_edge(nh)) {
+        // this was intentially left empty
     }
-
+    // half-edge is not on a border
+    else {
+	// determine the face of the next handle
+	auto nface_h = mesh.get_face_of_half_edge(nh).expect(EXPECT_NO_BORDER);
+	
+	// Only calc the scale factor, if we are NOT at a t-joint
+	double scale_factor = 1;
+	if (face_h != nface_h) {
+	    auto separating_edge = mesh.get_half_edge_between(face_h, nface_h).expect(EXPECT_NO_BORDER);
+	    scale_factor = expect(mesh.get_knot_factor(separating_edge), EXPECT_NO_BORDER);
+	}
+    }
+    
+    // length of the knot intervals in the CCW transverse direction
     auto sum_knot_vectors2 = knots[handle][wrapped_index][0] + knots[handle][wrapped_index][1];
+    // rectangle representing the support of this "quadrant" of the basis function
     aa_rectangle r(vec2(0, 0), vec2(sum_knot_vectors1, sum_knot_vectors2 * scale_factor));
 
     return r;
 }
 
 local_knot_vectors surface_evaluator::get_knot_vectors(vertex_handle handle, size_t handle_index) const {
-    // Note on variable names: a number i at the end means "domain + i" and a _i number means "domain - i"
 
     // TODO: this assumes that there are no borders;
     //       this needs to be adjusted in the case of borders
+    // TODO: this assumes that points are not extraordinary... 
+    //       address the case of extraordinary point
 
-    // Get half edge and face corresponding to the current handle
+    // determine the extended valence of the vertex
+    int extended_valence = mesh.get_extended_valence(handle);
+    // determine if the vertex is on a border
+    bool border_vert = mesh.is_border_vertex(handle);
+
+//    if (extended_valence == 4 && !border_vert) {
+        return get_regular_internal_knot_vectors(handle, handle_index);
+//    }
+//    else {
+//	panic("Cannot currently operate on the given type of vertex");
+//    }
+}
+
+local_knot_vectors surface_evaluator::get_regular_internal_knot_vectors(vertex_handle handle, size_t handle_index) const {
+    // Note on variable names: a number i at the end means "domain + i" and a _i number means "domain - i"
+    
+    // extract the halfedge and tag from the handle
     auto [edge_h0, tag0] = handles[handle][handle_index];
+
+    // current call routines demand that this will have a non-empty face
     auto face_h0 = mesh.get_face_of_half_edge(edge_h0).expect(EXPECT_NO_BORDER);
 
     // Get half edge and face handle for index + 1 cw
@@ -461,6 +494,10 @@ local_knot_vectors surface_evaluator::get_knot_vectors(vertex_handle handle, siz
     );
     return out;
 }
+
+//local_knot_vectors surface_evaluator::get_regular_border_knot_vectors(vertex_handle handle, size_t handle_index) const {
+
+//}
 
 void surface_evaluator::update_cache() {
     calc_local_coords();
@@ -751,12 +788,18 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
         for (const auto& [h, q]: handles[vh]) {
             tagged.clear();
 
+	    // basis functions from halfedges should never be called
+	    if (q == tag::border) {
+		 handle_index += 1;
+		 continue;
+	    }
             queue<tuple<half_edge_handle, transform>> bfs_queue;
 
             bfs_queue.push({h, transforms[vh][handle_index]});
             auto face_h = mesh.get_face_of_half_edge(h).expect(EXPECT_NO_BORDER);
             tagged[face_h] = true;
 
+	    // determine the domain of basis function and its support in CCW direction
             auto r = get_parametric_domain(vh, handle_index);
 
             // Cache local knot vectors for faster surface evaluation

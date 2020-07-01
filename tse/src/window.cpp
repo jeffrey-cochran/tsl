@@ -132,7 +132,12 @@ window::window(string&& title, uint32_t width, uint32_t height) :
     ImGui_ImplGlfw_InitForOpenGL(glfw_window.get(), true);
     ImGui_ImplOpenGL3_Init(glsl_version);
     ImGui::StyleColorsDark();
+    //ImGui::StyleColorsLight();
+    //ImGui::StyleColorsClassic();
 
+    // change the background color
+    glClearColor(1.00f, 1.00f, 1.00f, 1.00f);
+    glClear(GL_COLOR_BUFFER_BIT);
     // get framebuffer size
     glfwGetFramebufferSize(glfw_window.get(), &frame_width, &frame_height);
 
@@ -907,7 +912,9 @@ void window::draw_surface(const mat4& model, const mat4& vp) const {
 
     glUniformMatrix4fv(vp_location_phong, 1, GL_FALSE, value_ptr(vp));
     glUniformMatrix4fv(m_location_phong, 1, GL_FALSE, value_ptr(model));
-    glUniform3fv(color_location_phong, 1, value_ptr(fvec3(0, 1, 0)));
+    // change surface color
+    glUniform3fv(color_location_phong, 1, value_ptr(fvec3(0.5, 0.5, 0.5)));
+    //glUniform3fv(color_location_phong, 1, value_ptr(fvec3(0, 1, 0)));
     glUniform3fv(camera_location, 1, value_ptr(camera.get_pos()));
     glUniform1ui(reflection_lines_location, show_reflection_lines);
 

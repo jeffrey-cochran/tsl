@@ -311,6 +311,14 @@ public:
      */
     array<vertex_handle, 2> get_vertices_of_half_edge(half_edge_handle edge_h) const;
 
+    /**
+     * @brief true if the vertex lies on the mesh border
+     *
+     * Iterate through all halfedges incident to the vertex. If any are border halfedges,
+     * return true. Otherwise, return false
+     */
+    bool is_border_vertex(vertex_handle vh) const;
+
     // ========================================================================
     // = Get faces
     // ========================================================================

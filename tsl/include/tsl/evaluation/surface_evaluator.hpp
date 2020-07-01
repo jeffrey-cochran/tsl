@@ -201,6 +201,16 @@ private:
     local_knot_vectors get_knot_vectors(vertex_handle handle, size_t handle_index) const;
 
     /**
+     * @brief Calculates the knot vectors in u and v direction for the basis function rooted at the given regular interior vertex
+     */
+    local_knot_vectors get_regular_internal_knot_vectors(vertex_handle handle, size_t handle_index) const;
+
+    /**
+     * @brief Calculates the knot vectors in u and v direction for the basis function rooted at the given regular border vertex
+     */
+    local_knot_vectors get_regular_border_knot_vectors(vertex_handle handle, size_t handle_index) const;
+
+    /**
      * @brief Updates the local cached values, because the mesh structure has changed.
      *
      * This could be updated to only update the cache for some values instead of updating the whole cache.
