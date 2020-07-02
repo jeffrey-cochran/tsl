@@ -48,19 +48,19 @@ vector<regular_grid> surface_evaluator::eval_per_face(uint32_t res) const {
         mesh.get_vertices_of_face(fh, vertices_buffer);
         for (const auto& vh: vertices_buffer) {
 	    auto border_vertex = mesh.is_border_vertex(vh);
-	    int ext_valence = mesh.get_extended_valence(vh);
+	    int valence = mesh.get_valence(vh);
             if (mesh.is_extraordinary(vh)) {
                 contains_extraordinary_vertex = true;
             }
 
 	    // TODO -- there is potential for a valence 2 ep border face to have another vertex that is extraordinary;
 	    // fix this
-	    if(border_vertex && ext_valence == 2) {
+	    if(border_vertex && valence == 2) {
 	        contains_v2_border_ep = true;
 	    }
             // TODO: this will be fixed, when evaluation near borders is implemented; or not: if not, we should throw
             //       a warning!
-            if ((!border_vertex && ext_valence < 3) || (border_vertex && ext_valence > 3)) {
+            if ((!border_vertex && valence < 3) || (border_vertex && valence > 3)) {
                 contains_invalid_valence = true;
                 report_error(format("invalid valence at vertex with handle id: {}", vh.get_idx()));
             }

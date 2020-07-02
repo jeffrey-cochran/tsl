@@ -111,6 +111,14 @@ public:
      */
     bool remove_edge(edge_handle handle, bool keep_vertices = true);
 
+    /**
+     * @brief modify all half-edges transverse to the boundary to have zero knot interval
+     *
+     * Modifies all half-edges of a t-mesh which have a boundary vertex but which are not
+     * on the boundary and do not have a twin on the boundary to have zero knot interval
+     */
+    void zero_transverse_boundary_edge_knot_intervals(); 
+    
     // ========================================================================
     // = Get numbers
     // ========================================================================

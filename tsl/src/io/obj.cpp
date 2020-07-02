@@ -61,6 +61,9 @@ tmesh read_obj_into_tmesh(const string& file_path) {
         out.add_face(vertices);
     }
 
+    // for border faces, make all knot intervals transverse to the boundary zero by default
+//    out.zero_transverse_boundary_edge_knot_intervals();
+
     return out;
 }
 

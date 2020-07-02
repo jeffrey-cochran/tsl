@@ -578,6 +578,27 @@ bool tmesh::remove_edge(edge_handle handle, bool keep_vertices) {
     return true;
 }
 
+void tmesh::zero_transverse_boundary_edge_knot_intervals() 
+{
+    for (const auto& vh: get_vertices()) {
+	if(is_border_vertex(vh)) {
+	    auto valence = get_valence(vh);
+            // iterate and make all half-edges transverse to the boundary have zero knot interval
+	    for (const auto& heh: get_half_edges_of_vertex(vh, edge_direction::outgoing)) {
+                if ((!is_border(heh) && !is_border(get_twin(heh))) || valence == 2) {
+       		    // change the knot intervals on heh and heh's twin
+		    auto& he = get_e(heh);
+		    auto& twin = get_e(get_twin(heh));
+
+		    he.knot = 0;
+		    twin.knot = 0;
+	        }
+	    }
+        }            
+    }
+
+}
+
 // ========================================================================
 // = Get numbers
 // ========================================================================
