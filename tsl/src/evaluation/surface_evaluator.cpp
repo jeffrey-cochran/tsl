@@ -910,6 +910,8 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
 
 	    // basis functions from halfedges should never be called
 	    if (q == tag::border) {
+		 // insert empty place-holder struct for correct indexing
+		 knot_vectors[vh].push_back(local_knot_vectors({},{}));
 		 handle_index += 1;
 		 continue;
 	    }
