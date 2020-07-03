@@ -9,6 +9,8 @@ add_executable(tsl_tests
     geometry/tmesh/tmesh_fixtures.cpp
     geometry/transform_tests.cpp
     evaluation/bsplines_tests.cpp
+    io/obj_load.cpp
+    io/obj_test.cpp
     algorithm/get_vertices_tests.cpp
     evaluation/surface_evaluator_tests.cpp
     evaluation/surface_evaluator_fixtures.cpp
