@@ -14,6 +14,11 @@ namespace tsl {
  */
 tmesh read_obj_into_tmesh(const string& file_path);
 
+/**
+ * @brief Imports the quadmesh from the given file path into a tmesh that interpolates the boundary
+ */
+tmesh read_obj_into_boundary_interpolant_tmesh(const string& file_path);
+
 }
 
 #endif //TSL_OBJ_HPP

@@ -583,15 +583,27 @@ void tmesh::zero_transverse_boundary_edge_knot_intervals()
     for (const auto& vh: get_vertices()) {
 	if(is_border_vertex(vh)) {
 	    auto valence = get_valence(vh);
-            // iterate and make all half-edges transverse to the boundary have zero knot interval
-	    for (const auto& heh: get_half_edges_of_vertex(vh, edge_direction::outgoing)) {
-                if ((!is_border(heh) && !is_border(get_twin(heh))) || valence == 2) {
-       		    // change the knot intervals on heh and heh's twin
-		    auto& he = get_e(heh);
-		    auto& twin = get_e(get_twin(heh));
-
-		    he.knot = 0;
-		    twin.knot = 0;
+	    // for valence two vertices, change all knots on half-edges which have a face
+	    if (valence == 2) {
+	        for(const auto& heh: get_half_edges_of_vertex(vh, edge_direction::outgoing)) {
+		    if(!is_border(heh)) {
+		        auto& he = get_e(heh);
+			he.knot = 0;
+		    }
+		}
+		for(const auto& heh: get_half_edges_of_vertex(vh, edge_direction::ingoing)) {
+		    if(!is_border(heh)) {
+		        auto& he = get_e(heh);
+			he.knot = 0;
+		    }
+		}
+	    }
+	    else {
+	        // iterate and make all half-edges transverse to the boundary have zero knot interval
+	        for (const auto& heh: get_half_edges_of_vertex(vh, edge_direction::outgoing)) {
+                    if (!is_border(heh) && !is_border(get_twin(heh))) {
+	                edge_to_zero_knot_interval(heh);
+		    }
 	        }
 	    }
         }            
@@ -783,8 +795,7 @@ array<vertex_handle, 2> tmesh::get_vertices_of_half_edge(half_edge_handle edge_h
 
 bool tmesh::is_border_vertex(vertex_handle vh) const {
     // iterate over all halfedges of this vertex
-    auto half_edge_handles = get_half_edges_of_vertex(vh, edge_direction::outgoing);
-    for (const auto& heh: half_edge_handles) {
+    for (const auto& heh: get_half_edges_of_vertex(vh, edge_direction::outgoing)) {
         if( is_border(heh)) {
 	    return true;
 	}
@@ -1094,6 +1105,17 @@ vertex& tmesh::get_v(vertex_handle handle)
 const vertex& tmesh::get_v(vertex_handle handle) const
 {
     return vertices[handle];
+}
+
+void tmesh::edge_to_zero_knot_interval(half_edge_handle handle)
+{
+    auto twin_handle = get_twin(handle);
+    // change the knot intervals on handle and handle's twin
+    auto& hedge = get_e(handle);
+    auto& twin = get_e(twin_handle);
+    
+    hedge.knot = 0;
+    twin.knot = 0;
 }
 
 half_edge_handle tmesh::find_or_create_edge_between(new_face_vertex from_h, new_face_vertex to_h) {

@@ -563,6 +563,11 @@ private:
     const vertex& get_v(vertex_handle handle) const;
 
     /**
+     * @brief makes the half-edge and its twin have zero knot interval
+     */
+    void edge_to_zero_knot_interval(half_edge_handle handle);
+
+    /**
      * @brief Attempts to find an edge between the given vertices and, if none
      *        is found, creates a new edge with `add_edge_pair()`
      *
