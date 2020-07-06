@@ -12,8 +12,18 @@ void SurfaceEvaluatorWithSingleFaceTest::SetUp() {
     string fpath = path;
     fpath += "1x1_square.obj";
 
-    evaluator = surface_evaluator(read_obj_into_tmesh(fpath));
+    evaluator = surface_evaluator(read_obj_into_tmesh_no_boundary_interpolant(fpath));
     
+    mesh = evaluator.get_tmesh();
+}
+
+void SurfaceEvaluatorMinimalInterpolantPatchTest::SetUp() {
+    string path = "meshes/";
+    string fpath = path;
+    fpath += "3x3_square.obj";
+
+    evaluator = surface_evaluator(read_obj_into_boundary_interpolant_tmesh(fpath));
+
     mesh = evaluator.get_tmesh();
 }
 

@@ -8,7 +8,14 @@ void TmeshLoadSingleFace::SetUp() {
     string path = "meshes/";
     string fpath = path;
     fpath += "1x1_square.obj";
-    mesh = read_obj_into_tmesh(fpath);
+    mesh = read_obj_into_tmesh_no_boundary_interpolant(fpath);
+}
+
+void TmeshLoad3x3InterpolatoryPatch::SetUp() {
+    string path = "meshes/";
+    string fpath = path;
+    fpath += "3x3_square.obj";
+    mesh = read_obj_into_boundary_interpolant_tmesh(fpath);
 }
 
 }

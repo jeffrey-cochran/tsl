@@ -41,6 +41,16 @@ protected:
 
 };
 
+class SurfaceEvaluatorMinimalInterpolantPatchTest : public ::testing::Test {
+public:
+    SurfaceEvaluatorMinimalInterpolantPatchTest() : evaluator(tmesh()) {}
+protected:
+    void SetUp() override;
+
+    tmesh mesh;
+    surface_evaluator evaluator;
+};
+
 }
 
 #endif //TEST_INCLUDE_TSL_TESTS_EVALUATION_SURFACE_EVALUATOR_FIXTURES_HPP

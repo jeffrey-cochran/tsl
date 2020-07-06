@@ -52,4 +52,41 @@ TEST_F(SurfaceEvaluatorWithSingleFaceTest,KnotVectors) {
     }
 }
 
+TEST_F(SurfaceEvaluatorMinimalInterpolantPatchTest, KnotVectors) {
+    // ensure that the knot vectors on the vertices are correct
+
+    auto knot_vector_map = evaluator.get_knot_vectors();
+    // ensure that there are four knot vectors -- one for each of the vertices
+    EXPECT_EQ(16, knot_vector_map.num_values());
+
+    // iterate on each vertex handle; there should be one handle with a
+    // well-defined basis function; the other (potential) handle is skipped
+    int num_empty;
+    std::vector<double> ref_u, ref_v;
+    for (const auto& vh: mesh.get_vertices()) {
+        const auto local_knots = knot_vector_map[vh];
+	num_empty = 0;
+	EXPECT_EQ(mesh.get_valence(vh), local_knots.size());
+
+	// check the local knot vectors
+	int counter = 0;
+	for (const auto& heh: mesh.get_half_edges_of_vertex(vh, edge_direction::outgoing)) {
+	    if (mesh.is_border(heh)) {
+		EXPECT_EQ(0, local_knots[counter].u.size());
+		EXPECT_EQ(0, local_knots[counter].v.size());
+	    }
+	    else if(mesh.get_valence(vh) == 2 && mesh.get_valence(mesh.get_target(heh)) == 3) {
+		ref_u = {0,0,0,0,1};
+		ref_v = {0,0,0,0,1};
+		for(int i = 0; i < 5; ++i) {
+		     EXPECT_EQ(ref_u[i], local_knots[counter].u[i]);
+		     EXPECT_EQ(ref_v[i], local_knots[counter].v[i]);
+		}
+	    }
+
+	    ++counter;
+	}
+    }
+}
+
 }

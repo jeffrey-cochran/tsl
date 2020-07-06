@@ -21,6 +21,13 @@ protected:
     tmesh mesh;
 };
 
+class TmeshLoad3x3InterpolatoryPatch : public ::testing::Test {
+protected:
+    void SetUp() override;
+
+    tmesh mesh;
+};
+
 }
 
 

@@ -768,7 +768,7 @@ void surface_evaluator::calc_knots() {
         knots.insert(vh, vector<array<double, 2>>());
         knots[vh].reserve(mesh.get_valence(vh));
         for (auto [h, q]: handles[vh]) {
-            double s = 0;
+	    double s = 0;
             uint32_t j = 1;
 	    // put a zero value at the back
             knots[vh].emplace_back();
@@ -841,13 +841,18 @@ void surface_evaluator::calc_knots() {
             j = 2;
 
 	    // iterate to the portion of the mesh that corresponds to the current T-junction
-            while (s >= expect(mesh.get_knot_interval(h), "half-edges on the opposite side of T-junction should have valid intervals")) {
-                s -= expect(mesh.get_knot_interval(h), "hals_edges on the opposite side of T-junction should have valid intervals (2)");
-                h = mesh.get_next(h);
+            int tmp_int = expect(mesh.get_knot_interval(h), "half-edges on the opposite side of T-junction should have valid intervals");
+	    while (s >= tmp_int) {
+                s -= tmp_int;
+		h = mesh.get_next(h);
+		tmp_int = expect(mesh.get_knot_interval(h), "half-edges on the opposite side of T-junction should have valid intervals (2)");
+		// break if reached a corner; if valid, this must correspond to a face with zero interval
+		if (expect(mesh.corner(h), "should have valid corner"))
+		    break;
             }
 
 	    // the next face is on the border, so it has an implicit knot interval of 0
-	    if (!mesh.get_face_of_half_edge(mesh.get_twin(h))) {
+	    if (mesh.is_border(mesh.get_twin(h))) {
 	        current_knot[j - 1] = 0;
 		continue;
 	    }
