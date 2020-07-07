@@ -13,6 +13,3 @@
 [submodule "tse/ext/glfw"]
 	path = tse/ext/glfw
 	url = https://github.com/glfw/glfw.git
-[submodule "tse/ext/OpenBLAS"]
-	path = tse/ext/OpenBLAS
-	url = https://github.com/xianyi/OpenBLAS.git
