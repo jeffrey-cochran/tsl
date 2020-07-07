@@ -842,13 +842,12 @@ void surface_evaluator::calc_knots() {
 
 	    // iterate to the portion of the mesh that corresponds to the current T-junction
             int tmp_int = expect(mesh.get_knot_interval(h), "half-edges on the opposite side of T-junction should have valid intervals");
-	    while (s >= tmp_int) {
+	    // break if reached a corner; if valid, this must correspond to a face with zero interval
+	    while (s >= tmp_int && !expect(mesh.corner(h), "should have valid corner")) {
                 s -= tmp_int;
 		h = mesh.get_next(h);
 		tmp_int = expect(mesh.get_knot_interval(h), "half-edges on the opposite side of T-junction should have valid intervals (2)");
-		// break if reached a corner; if valid, this must correspond to a face with zero interval
-		if (expect(mesh.corner(h), "should have valid corner"))
-		    break;
+	
             }
 
 	    // the next face is on the border, so it has an implicit knot interval of 0
@@ -858,6 +857,7 @@ void surface_evaluator::calc_knots() {
 	    }
             // iterate to next corner (so the same direction as current knot vector)
             auto f = expect(mesh.get_knot_factor(h), "if half-edge and twin both have valid faces, the knot factor should also be valid");
+	    
 	    // flip to the next face
             h = mesh.get_twin(h);
             while (!expect(mesh.corner(h), "valid face should have corners defined")) {
@@ -907,6 +907,7 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
 
     dense_face_map<sparse_vertex_map<bool>> added(sparse_vertex_map<bool>(false));
 
+    size_t v_idx = 0;
     for (const auto& vh: handles) {
         knot_vectors.insert(vh, vector<local_knot_vectors>());
         size_t handle_index = 0;
@@ -929,7 +930,8 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
 	    // determine the domain of basis function and its support in CCW direction
             auto r = get_parametric_domain(vh, handle_index);
 
-            // Cache local knot vectors for faster surface evaluation
+//	    std::cout << v_idx << ":  " << r.bottom_left.x << ", " << r.bottom_left.y << " to " << r.top_right.x << ", " << r.top_right.y << std::endl;
+	    // Cache local knot vectors for faster surface evaluation
             // these are computed from the knot intervals on adjacent faces
 	    knot_vectors[vh].push_back(get_knot_vectors(vh, handle_index));
 
@@ -954,7 +956,8 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
                 while (g != ch) {
                     auto prev_g = mesh.get_prev(g);
                     line_segment l(ct.apply(uv[g]), ct.apply(uv[prev_g]));
-                    if (!l.intersects(r)) {
+//		    std::cout << l.p1.x << ", " << l.p1.y << " to " << l.p2.x << ", " << l.p2.y << std::endl;
+		    if (!l.intersects(r)) {
                         g = mesh.get_next(g);
                         continue;
                     }
@@ -979,7 +982,9 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
             }
 
             handle_index += 1;
+//	    std::cout << std::endl; 
         }
+        ++v_idx;
     }
 }
 

@@ -143,6 +143,11 @@ public:
     const dense_vertex_map<vector<local_knot_vectors>>& get_knot_vectors() const { return knot_vectors; }
 
     /**
+     * @brief Returns handles for the univariate, directed basis functions at each vertex
+     */
+    const basis_fun_map& get_basis_function_handles() const { return handles; }
+
+    /**
      * @brief Returns the local coords map.
      */
     const coord_map& get_coord_map() const { return uv; }

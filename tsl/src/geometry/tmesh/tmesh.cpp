@@ -702,7 +702,11 @@ optional<double> tmesh::get_knot_factor(half_edge_handle handle) const {
     auto knot_interval = get_knot_interval(handle);
     auto knot_interval_twin = get_knot_interval(get_twin(handle));
     if (knot_interval && knot_interval_twin) {
-        return *knot_interval / *knot_interval_twin;
+	if (*knot_interval_twin == 0) {
+	    return 1.0;
+	} else {
+            return *knot_interval / *knot_interval_twin;
+        }
     }
     return nullopt;
 }
