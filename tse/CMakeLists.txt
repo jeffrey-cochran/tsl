@@ -4,6 +4,9 @@ project(tse VERSION 1.0.0 LANGUAGES CXX)
 # enable C++17 standard
 set(CMAKE_CXX_STANDARD 17)
 
+# where to put non-compiled files
+set(COPY_TARGET ${CMAKE_CURRENT_BINARY_DIR}/src)
+
 # deps
 find_package(OpenGL REQUIRED)
 add_subdirectory(ext/imgui EXCLUDE_FROM_ALL)
@@ -12,7 +15,6 @@ include_directories(ext/pfd)
 add_subdirectory(ext/glfw EXCLUDE_FROM_ALL)
 add_definitions(-DGLEW_STATIC)
 add_subdirectory(ext/glew EXCLUDE_FROM_ALL)
-add_definitions(-DTSL_EIGENVALUES_PREFX="../../../tsl/")
 add_subdirectory(../tsl tsl EXCLUDE_FROM_ALL)
 include_directories(../tsl/include)
 
@@ -21,3 +23,6 @@ set(TSE_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
 include_directories(${TSE_INCLUDE_DIR})
 add_subdirectory(src)
+
+# copy shader files
+file(COPY shader DESTINATION ${COPY_TARGET})

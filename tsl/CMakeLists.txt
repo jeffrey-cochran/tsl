@@ -24,3 +24,6 @@ set(TSL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 include_directories(${TSL_INCLUDE_DIR})
 add_subdirectory(src)
 add_subdirectory(test)
+
+# Make sure to copy eigenvalue files
+file(COPY eigenvalues DESTINATION ${COPY_TARGET})
