@@ -9,12 +9,17 @@ set(COPY_TARGET ${CMAKE_CURRENT_BINARY_DIR}/src)
 
 # deps
 find_package(OpenGL REQUIRED)
+
 add_subdirectory(ext/imgui EXCLUDE_FROM_ALL)
 include_directories(ext/imgui)
+
 include_directories(ext/pfd)
+
 add_subdirectory(ext/glfw EXCLUDE_FROM_ALL)
+
 add_definitions(-DGLEW_STATIC)
 add_subdirectory(ext/glew EXCLUDE_FROM_ALL)
+
 add_subdirectory(../tsl tsl EXCLUDE_FROM_ALL)
 include_directories(../tsl/include)
 
@@ -26,3 +31,4 @@ add_subdirectory(src)
 
 # copy shader files
 file(COPY shader DESTINATION ${COPY_TARGET})
+
