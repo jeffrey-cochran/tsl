@@ -5,9 +5,7 @@ project(tsl VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 
 # Load OpenBLAS
-# set(OpenBLAS_DIR /usr/local/lib/lib/cmake/openblas)
-# find_package(OpenBLAS REQUIRED)
-# include_directories(${OpenBLAS_INCLUDE_DIRS})
+include_directories($ENV{OpenBLAS_INCLUDE})
 
 # other deps
 include_directories(ext/tinyobjloader)
@@ -18,11 +16,6 @@ endif()
 if (NOT TARGET fmt)
     add_subdirectory(ext/fmt EXCLUDE_FROM_ALL)
 endif()
-
-if (NOT TARGET OpenBLAS)
-    add_subdirectory(ext/OpenBLAS EXCLUDE_FROM_ALL)
-endif()
-
 
 # application
 set(TSL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
