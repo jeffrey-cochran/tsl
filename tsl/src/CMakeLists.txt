@@ -17,7 +17,7 @@ add_library(tsl SHARED STATIC
 target_link_libraries(tsl
     PUBLIC fmt
     PUBLIC glm
-    PUBLIC blas
+    PUBLIC $ENV{OpenBLAS_LIBS}
 )
 
 # TSL Benchmark

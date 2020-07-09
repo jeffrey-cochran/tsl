@@ -22,3 +22,7 @@ target_link_libraries(tse
     glfw
     libglew_static
 )
+
+target_include_directories(tse INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated>
+)

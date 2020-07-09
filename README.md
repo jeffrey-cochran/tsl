@@ -1,7 +1,7 @@
 # T-Spline Library & T-Spline Editor
 Library and editor for representation and manipulation of generalised T-Spline surfaces following [Similarity Maps and Field-Guided T-Splines: a Perfect Couple](https://doi.org/10.1145/3072959.3073647) written in C++.
 
-[![CircleCI](https://circleci.com/gh/jovobe/tsl.svg?style=svg)](https://circleci.com/gh/jovobe/tsl)
+[![CircleCI](https://circleci.com/gh/jeffrey-cochran/tsl.svg?style=shield)](https://circleci.com/gh/jeffrey-cochran/tsl)
 
 This repository contains two C++ projects. One contains the library and can be found in the [tsl](tsl) folder and the other one contains the editor, which can be found in the [tse](tse) folder. For further informations please read the repsective README files in the two projects.
 
