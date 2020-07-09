@@ -33,7 +33,6 @@ jobs:
       - run: cd /home/git/tsl/tsl && /home/build/tsl/test/src/tsl_tests
       - slack/status:
           fail_only: false
-          webhook: https://hooks.slack.com/services/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
 
 workflows:
   version: 2.1
