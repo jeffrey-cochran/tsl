@@ -109,4 +109,13 @@ TEST_F(TmeshLoad3x3InterpolatoryPatch, Knots) {
     }
 }
 
+TEST_F(TmeshLoad3x3InterpolatoryPatch, ScaleFactors) {
+    for (const auto& heh: mesh.get_half_edges()) {
+	// check if the knot factor is well-defined (no border halfedges)
+	if (mesh.get_knot_factor(heh)) {
+            EXPECT_EQ(1.0, mesh.get_knot_factor(heh).value_or(-1));
+	}
+    }
+}
+
 }

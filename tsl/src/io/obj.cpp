@@ -8,8 +8,8 @@
 namespace tsl {
 
 tmesh read_obj_into_tmesh(const string& file_path) {
-//    return read_obj_into_boundary_interpolant_tmesh(file_path);
-    return read_obj_into_tmesh_no_boundary_interpolant(file_path);
+    return read_obj_into_boundary_interpolant_tmesh(file_path);
+//    return read_obj_into_tmesh_no_boundary_interpolant(file_path);
 }
 
 tmesh read_obj_into_boundary_interpolant_tmesh(const string& file_path) {
