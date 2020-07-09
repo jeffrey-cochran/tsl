@@ -5,7 +5,16 @@ project(tsl VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 
 # Load OpenBLAS
-include_directories($ENV{OpenBLAS_INCLUDE})
+find_package(BLAS)
+if(${BLAS_FOUND})
+    message(status "found blas")
+else(${BLAS_FOUND})
+    if(DEFINED ENV{OpenBLAS_INCLUDE})
+	include_directories($ENV{OpenBLAS_INCLUDE})
+    else(DEFINED ENV{OpenBLAS_INCLUDE})
+        message(fatal_error "Could not locate BLAS")
+    endif(DEFINED ENV{OpenBLAS_INCLUDE})
+endif(${BLAS_FOUND})
 
 # other deps
 include_directories(ext/tinyobjloader)
@@ -24,5 +33,14 @@ include_directories(${TSL_INCLUDE_DIR})
 add_subdirectory(src)
 add_subdirectory(test)
 
-# Make sure to copy eigenvalue files
-file(COPY eigenvalues DESTINATION ${COPY_TARGET})
+# Make sure to copy eigenvalue files to the build location if building from tse
+# Also, define the build location of test data based on whether TSE used or not
+if(${TSE_BUILD})
+    file(COPY eigenvalues DESTINATION ${COPY_TARGET})
+endif()
+
+# set target for copying the test data
+set(COPY_TEST_TARGET ${CMAKE_CURRENT_BINARY_DIR}/test/src)
+# copy eigenvalue and mesh files used in testing to the appropriate location
+file(COPY eigenvalues DESTINATION ${COPY_TEST_TARGET})
+file(COPY meshes/test_meshes DESTINATION ${COPY_TEST_TARGET})

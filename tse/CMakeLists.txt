@@ -4,8 +4,13 @@ project(tse VERSION 1.0.0 LANGUAGES CXX)
 # enable C++17 standard
 set(CMAKE_CXX_STANDARD 17)
 
+# flag this as a TSE build
+set(TSE_BUILD TRUE)
+
 # where to put non-compiled files
 set(COPY_TARGET ${CMAKE_CURRENT_BINARY_DIR}/src)
+# where to put tsl binaries
+set(TSL_BINARY_LOC tsl)
 
 # deps
 find_package(OpenGL REQUIRED)
@@ -20,7 +25,7 @@ add_subdirectory(ext/glfw EXCLUDE_FROM_ALL)
 add_definitions(-DGLEW_STATIC)
 add_subdirectory(ext/glew EXCLUDE_FROM_ALL)
 
-add_subdirectory(../tsl tsl EXCLUDE_FROM_ALL)
+add_subdirectory(../tsl ${TSL_BINARY_LOC} EXCLUDE_FROM_ALL)
 include_directories(../tsl/include)
 
 # application

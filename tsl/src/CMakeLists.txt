@@ -14,11 +14,23 @@ add_library(tsl SHARED STATIC
     io/obj.cpp
 )
 
-target_link_libraries(tsl
-    PUBLIC fmt
-    PUBLIC glm
-    PUBLIC $ENV{OpenBLAS_LIBS}
-)
+if(${BLAS_FOUND})
+    target_link_libraries(tsl
+        PUBLIC fmt
+        PUBLIC glm
+        PUBLIC blas
+    )
+else(${BLAS_FOUND})
+    if(DEFINED ENV{OpenBLAS_LIBS})
+	target_link_libraries(tsl
+	    PUBLIC fmt
+	    PUBLIC glm
+	    PUBLIC $ENV{OpenBLAS_LIBS}
+	)
+    else(DEFINED ENV{OpenBLAS_LIBS})
+	message(fatal_error "Library for BLAS not defined")
+    endif(DEFINED ENV{OpenBLAS_LIBS})
+endif(${BLAS_FOUND})
 
 # TSL Benchmark
 add_executable(tsl_benchmark

@@ -8,7 +8,7 @@ namespace tsl_tests {
 void SurfaceEvaluatorWithTfaceTest::SetUp() {}
 
 void SurfaceEvaluatorWithSingleFaceTest::SetUp() {
-    string path = "meshes/";
+    string path = "test_meshes/";
     string fpath = path;
     fpath += "1x1_square.obj";
 
@@ -18,7 +18,7 @@ void SurfaceEvaluatorWithSingleFaceTest::SetUp() {
 }
 
 void SurfaceEvaluatorMinimalInterpolantPatchTest::SetUp() {
-    string path = "meshes/";
+    string path = "test_meshes/";
     string fpath = path;
     fpath += "3x3_square.obj";
 
