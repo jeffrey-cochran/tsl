@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  slack: circleci/slack@3.4.2
+
 executors:
   ubuntu-build:
     description: "A regular build executor based on ubuntu image"
@@ -28,6 +31,9 @@ jobs:
       - attach_workspace:
           at: /home/build
       - run: cd /home/git/tsl/tsl && /home/build/tsl/test/src/tsl_tests
+      - slack/status:
+          fail_only: false
+          webhook: https://hooks.slack.com/services/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
 
 workflows:
   version: 2.1
