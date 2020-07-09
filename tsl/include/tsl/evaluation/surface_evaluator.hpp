@@ -162,6 +162,10 @@ public:
      */
     const edge_trans_map& get_edge_trans_map() const { return edge_trans; }
 
+    /**
+     * @brief access to a private function which needs to be viewed
+     */
+    const aa_rectangle get_parametric_domain_access(vertex_handle handle, size_t handle_index) const { return get_parametric_domain(handle, handle_index); }
 private:
     /// Used tmesh.
     tmesh mesh;

@@ -641,12 +641,27 @@ void surface_evaluator::calc_local_coords() {
 	// start in the positive u direction
         uint8_t i = 0;
 
+	// given the following mesh with knot intervals a, b, c, d, e, and f
+	// for half-edges labeled the same
+	// this computation will yield the following correspondance
+	// x--------------x-------------------------x
+	// |   <--------               <---------   |
+	// |       a                        b       |
+	// | |                                    ^ |
+	// | | d                                  | |
+	// | |                                  c | |
+	// | v        e                      f    | |
+	// |     ---------->              ------>   |
+	// x---------------------------x------------x
+	// uv(he[f]) = (f,0)
+	// uv(he[c]) = (f,c)
+	// uv(he[b]) = (f-b,c)
+	// uv(he[a]) = (f-b-a,c)
+	// uv(he[d]) = (f-b-a,c-d) = (f-b-a,0)        because consistency demands c-d = 0
+	// uv(he[e]) = (f-b-a+e,0) = (0,0)            because consistency demands f+e = b+a
 	// iterate over all half-edges of the face
         for (const auto& eh: mesh.get_half_edges_of_face(fh)) {
-            // currently, we expect no half-edges with knot interval of 0
-	    // TODO -- adjust this!
-	    //      -- when adjusted, we may need an index map
-	    // This actually may just mean that we need knot intervals defined on the mesh...
+	    // Expect knot intervals on the mesh... all half-edges except the border ones
             auto k = expect(mesh.get_knot_interval(eh), "extraction of a knot interval on a half-edge corresponding to a face failed");
 	    // rotate the vector by pi/2 * i and add to current position 
             c += rotate(i, vec2(k, 0));
@@ -657,8 +672,6 @@ void surface_evaluator::calc_local_coords() {
             dir.insert(eh, i);
 
 	    // if the edge handle terminates at a corner, iterate by 90 degrees
-	    // TODO -- I do not think that we need an EXPECT_NO_BORDER exception here
-	    //      -- probably more like an expected corners exception
             if (expect(mesh.corner(eh), "Corners on the mesh are not defined")) {
                 i += 1;
             }
@@ -947,6 +960,7 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
                 }
 
                 // Only add the vertex, if it hasn't been added before
+		// this is useful, for example, in the presence of T-junctions
                 if (!added[cface_h][vh]) {
                     support[cface_h].emplace_back(vh, handle_index, ct);
                     added[cface_h][vh] = true;

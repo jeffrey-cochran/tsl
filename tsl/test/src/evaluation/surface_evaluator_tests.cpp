@@ -131,17 +131,27 @@ TEST_F(SurfaceEvaluatorMinimalInterpolantPatchTest, KnotVectors) {
     }
 }
 
-//TEST_F(SurfaceEvaluatorMinimalInterpolantPatchTest, ParametricDomains) {
-//    // get the parametric domains for each basis function handle
-//    auto handles = evaluator.get_basis_function_handles();
-//    for (const auto& vh: mesh.get_vertices()) {
-//        size_t handle_idx = 0;
-//	for (const auto& [h, q]: handles[vh]) {
-//	    auto r = evaluator.get_parametric_domain(vh, handle_idx);
-//	    std::cout << r.top_right.x << ", " << r.top_right.y << std::endl;
-//	}
-//    }
-//}
+TEST_F(SurfaceEvaluatorMinimalInterpolantPatchTest, ParametricDomains) {
+    // get the parametric domains for each basis function handle
+    auto handles = evaluator.get_basis_function_handles();
+    int count = 0;
+    for (const auto& vh: handles) {
+        size_t handle_idx = 0;
+	for (const auto& [h, q]: handles[vh]) {
+	    if (q == tag::border) {
+		EXPECT_TRUE(mesh.is_border(h));
+	        EXPECT_THROW(evaluator.get_parametric_domain_access(vh, handle_idx), panic_exception);
+	    }
+	    else {
+		EXPECT_FALSE(mesh.is_border(h));
+		auto r = evaluator.get_parametric_domain_access(vh, handle_idx);
+//	        std::cout << "vert " << count << ", index " << handle_idx << "--> " << r.top_right.x << ", " << r.top_right.y << std::endl;
+	    }
+	    ++handle_idx;
+	}
+	++count;
+    }
+}
 
 TEST_F(SurfaceEvaluatorMinimalInterpolantPatchTest, DISABLED_Supports) {
     auto support = evaluator.get_support_map();
