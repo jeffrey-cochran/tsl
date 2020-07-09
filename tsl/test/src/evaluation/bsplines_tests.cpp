@@ -27,4 +27,40 @@ TEST(BasisFunsTest, Derivs) {
     EXPECT_EQ(1.0/2.0, n42.y);
 }
 
+TEST(BasisFunsTest,Interpolatory) {
+    
+    auto bf0 = get_bspline_with_der<3>(0, {0,0,0,0,1});
+    EXPECT_EQ(1.0, bf0.x);
+    EXPECT_EQ(-3.0, bf0.y);
+
+    bf0 = get_bspline_with_der<3>(0.1, {0,0,0,0,1});
+    EXPECT_NEAR(0.729, bf0.x, 1e-8);
+    EXPECT_NEAR(-3.0*0.81, bf0.y, 1e-8);
+
+    bf0 = get_bspline_with_der<3>(0.5, {0,0,0,0,1});
+    EXPECT_NEAR(0.125, bf0.x, 1e-8);
+    EXPECT_NEAR(-0.75, bf0.y, 1e-8);
+
+    bf0 = get_bspline_with_der<3>(1, {0,0,0,0,1});
+    EXPECT_NEAR(0, bf0.x, 1e-8);
+    EXPECT_NEAR(0, bf0.y, 1e-8);
+
+    // last basis function
+    auto bf4 = get_bspline_with_der<3>(1, {0,1,1,1,1});
+    EXPECT_NEAR(1.0, bf4.x, 1e-8);
+    EXPECT_NEAR(3.0, bf4.y, 1e-8);
+
+    bf4 = get_bspline_with_der<3>(0.9, {0,1,1,1,1});
+    EXPECT_NEAR(0.729, bf4.x, 1e-8);
+    EXPECT_NEAR(3.0*0.81, bf4.y, 1e-8);
+
+    bf4 = get_bspline_with_der<3>(0.5, {0,1,1,1,1});
+    EXPECT_NEAR(0.125, bf4.x, 1e-8);
+    EXPECT_NEAR(0.75, bf4.y, 1e-8);
+
+    bf4 = get_bspline_with_der<3>(0, {0,1,1,1,1});
+    EXPECT_NEAR(0, bf4.x, 1e-8);
+    EXPECT_NEAR(0, bf4.y, 1e-8);
+}
+
 }

@@ -111,6 +111,14 @@ public:
      */
     bool remove_edge(edge_handle handle, bool keep_vertices = true);
 
+    /**
+     * @brief modify all half-edges transverse to the boundary to have zero knot interval
+     *
+     * Modifies all half-edges of a t-mesh which have a boundary vertex but which are not
+     * on the boundary and do not have a twin on the boundary to have zero knot interval
+     */
+    void zero_transverse_boundary_edge_knot_intervals(); 
+    
     // ========================================================================
     // = Get numbers
     // ========================================================================
@@ -310,6 +318,14 @@ public:
      * The order of the vertices is not specified
      */
     array<vertex_handle, 2> get_vertices_of_half_edge(half_edge_handle edge_h) const;
+
+    /**
+     * @brief true if the vertex lies on the mesh border
+     *
+     * Iterate through all halfedges incident to the vertex. If any are border halfedges,
+     * return true. Otherwise, return false
+     */
+    bool is_border_vertex(vertex_handle vh) const;
 
     // ========================================================================
     // = Get faces
@@ -545,6 +561,11 @@ private:
     const face& get_f(face_handle handle) const;
     vertex& get_v(vertex_handle handle);
     const vertex& get_v(vertex_handle handle) const;
+
+    /**
+     * @brief makes the half-edge and its twin have zero knot interval
+     */
+    void edge_to_zero_knot_interval(half_edge_handle handle);
 
     /**
      * @brief Attempts to find an edge between the given vertices and, if none

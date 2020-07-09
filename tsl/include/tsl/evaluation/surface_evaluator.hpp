@@ -20,7 +20,8 @@ namespace tsl {
  */
 enum class tag {
     positive_u,
-    negative_v
+    negative_v,
+    border
 };
 
 /**
@@ -199,6 +200,21 @@ private:
      */
     local_knot_vectors get_knot_vectors(vertex_handle handle, size_t handle_index) const;
 
+    /**
+     * @brief Calculates the knot vectors in u and v direction for the basis function rooted at the given regular interior vertex
+     */
+    local_knot_vectors get_regular_internal_knot_vectors(vertex_handle handle, size_t handle_index) const;
+
+    /**
+     * @brief Calculates the knot vectors in u and v direction for the basis function rooted at the given regular border vertex
+     */
+    local_knot_vectors get_regular_border_knot_vectors(vertex_handle handle, size_t handle_index) const;
+
+    /**
+     * @brief Calculated the knot vectors in u and v direction for the basis function rooted at the given valence 2 border vertex
+     */
+    local_knot_vectors get_valence2_border_knot_vectors(vertex_handle handle, size_t handle_index) const;
+    
     /**
      * @brief Updates the local cached values, because the mesh structure has changed.
      *

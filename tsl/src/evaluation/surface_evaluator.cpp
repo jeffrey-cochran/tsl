@@ -43,21 +43,30 @@ vector<regular_grid> surface_evaluator::eval_per_face(uint32_t res) const {
     for (const auto& fh: mesh.get_faces()) {
         auto contains_extraordinary_vertex = false;
         auto contains_invalid_valence = false;
+	auto contains_v2_border_ep = false;
         vertices_buffer.clear();
         mesh.get_vertices_of_face(fh, vertices_buffer);
         for (const auto& vh: vertices_buffer) {
+	    auto border_vertex = mesh.is_border_vertex(vh);
+	    int valence = mesh.get_valence(vh);
             if (mesh.is_extraordinary(vh)) {
                 contains_extraordinary_vertex = true;
             }
+
+	    // TODO -- there is potential for a valence 2 ep border face to have another vertex that is extraordinary;
+	    // fix this
+	    if(border_vertex && valence == 2) {
+	        contains_v2_border_ep = true;
+	    }
             // TODO: this will be fixed, when evaluation near borders is implemented; or not: if not, we should throw
             //       a warning!
-            if (mesh.get_valence(vh) < 3) {
+            if ((!border_vertex && valence < 3) || (border_vertex && valence > 3)) {
                 contains_invalid_valence = true;
                 report_error(format("invalid valence at vertex with handle id: {}", vh.get_idx()));
             }
         }
 
-        if (contains_extraordinary_vertex) {
+        if (contains_extraordinary_vertex && !contains_v2_border_ep) {
             if (!contains_invalid_valence) {
                 auto grid = eval_subdevision(res, fh);
                 out.emplace_back(grid);
@@ -366,35 +375,80 @@ vector<vertex_handle> surface_evaluator::get_vertices_for_subd(face_handle handl
 }
 
 aa_rectangle surface_evaluator::get_parametric_domain(vertex_handle handle, size_t handle_index) const {
+    // length of knot intervals in the direction of this handle
     auto sum_knot_vectors1 = knots[handle][handle_index][0] + knots[handle][handle_index][1];
 
     // Get face
     auto [h, q] = handles[handle][handle_index];
-    auto face_h = mesh.get_face_of_half_edge(h).expect(EXPECT_NO_BORDER);
+    // whenever this is called, we should be on a parametric face
+    //auto face_h = mesh.get_face_of_half_edge(h).expect(EXPECT_NO_BORDER);
+    auto face_h = mesh.get_face_of_half_edge(h).expect("parametric_domain computation on border handle not allowed -- error 1");
 
     // Get neighbouring face
+    // -1 means the face -1 cw (+1 ccw)
     auto wrapped_index = (handles[handle].size() + handle_index - 1) % handles[handle].size();
     auto [nh, nq] = handles[handle][wrapped_index];
-    auto nface_h = mesh.get_face_of_half_edge(nh).expect(EXPECT_NO_BORDER);
 
-    // Only calc the scale factor, if we are NOT at a t-joint
     double scale_factor = 1;
-    if (face_h != nface_h) {
-        auto separating_edge = mesh.get_half_edge_between(face_h, nface_h).expect(EXPECT_NO_BORDER);
-        scale_factor = expect(mesh.get_knot_factor(separating_edge), EXPECT_NO_BORDER);
+    // this half-edge is on a border; no scaling factor necessary
+    if (!mesh.get_face_of_half_edge(nh)) {
+        // this was intentially left empty
     }
+    // half-edge is not on a border
+    else {
+	// determine the face of the next handle
+	//auto nface_h = mesh.get_face_of_half_edge(nh).expect(EXPECT_NO_BORDER);
+	auto nface_h = mesh.get_face_of_half_edge(nh).expect("parametric_domain computation on border handle not allowed -- error 2");
 
+	// Only calc the scale factor, if we are NOT at a t-joint
+	double scale_factor = 1;
+	if (face_h != nface_h) {
+	    auto separating_edge = mesh.get_half_edge_between(face_h, nface_h).expect("Cannot get half edge between for an invalid face");
+	    scale_factor = expect(mesh.get_knot_factor(separating_edge), "knot interval may not be specified for a border half edge");
+	}
+    }
+    
+    // length of the knot intervals in the CCW transverse direction
     auto sum_knot_vectors2 = knots[handle][wrapped_index][0] + knots[handle][wrapped_index][1];
+    // rectangle representing the support of this "quadrant" of the basis function
     aa_rectangle r(vec2(0, 0), vec2(sum_knot_vectors1, sum_knot_vectors2 * scale_factor));
 
     return r;
 }
 
 local_knot_vectors surface_evaluator::get_knot_vectors(vertex_handle handle, size_t handle_index) const {
-    // Note on variable names: a number i at the end means "domain + i" and a _i number means "domain - i"
 
-    // Get half edge and face corresponding to the current handle
+    // TODO: this assumes that points are not extraordinary... 
+    //       address the case of extraordinary point,
+    //       including border EPs (but not ones of valence 2)
+
+    // determine the extended valence of the vertex
+    int extended_valence = mesh.get_extended_valence(handle);
+    // determine if the vertex is on a border
+    bool border_vert = mesh.is_border_vertex(handle);
+
+    // regular border vertex
+    if(extended_valence == 3 && border_vert) {
+        return get_regular_border_knot_vectors(handle, handle_index);
+    }
+    // valence 2 border vertex
+    else if(extended_valence == 2 && border_vert) {
+        return get_valence2_border_knot_vectors(handle, handle_index);
+    }
+    // EP or regular interior vertex
+    // TODO -- address more generalized EPs
+    else {
+        return get_regular_internal_knot_vectors(handle, handle_index);
+    }
+}
+
+local_knot_vectors surface_evaluator::get_regular_internal_knot_vectors(vertex_handle handle, size_t handle_index) const {
+    // Note on variable names: a number i at the end means "domain + i" and a _i number means "domain - i"
+    
+    // extract the halfedge and tag from the handle
     auto [edge_h0, tag0] = handles[handle][handle_index];
+
+    // current call routines demand that this will have a non-empty face
     auto face_h0 = mesh.get_face_of_half_edge(edge_h0).expect(EXPECT_NO_BORDER);
 
     // Get half edge and face handle for index + 1 cw
@@ -458,6 +512,98 @@ local_knot_vectors surface_evaluator::get_knot_vectors(vertex_handle handle, siz
     return out;
 }
 
+local_knot_vectors surface_evaluator::get_regular_border_knot_vectors(vertex_handle handle, size_t handle_index) const {
+    // extract the halfedge and tag from the handle
+    auto [edge_h0, tag0] = handles[handle][handle_index];
+
+    // current call routines demand that this will have a non-empty face
+    auto face_h0 = mesh.get_face_of_half_edge(edge_h0).expect(EXPECT_NO_BORDER);
+
+    // Get half edge and face handle for index + 1 cw
+    auto index1 = (handles[handle].size() + handle_index + 1) % handles[handle].size();
+    auto [edge_h1, tag1] = handles[handle][index1];
+
+    // Get half edge and face handle for index - 1 cw (which is + 1 ccw)
+    auto index_1 = (handles[handle].size() + handle_index - 1) % handles[handle].size();
+    auto [edge_h_1, tag_1] = handles[handle][index_1];
+
+    // Get half edge and face handle for index - 2 cw (which is + 2 ccw)
+    auto index_2 = (handles[handle].size() + handle_index - 2) % handles[handle].size();
+    auto [edge_h_2, tag_2] = handles[handle][index_2];
+
+    // Get two knot values for current handle
+    auto knot01 = knots[handle][handle_index][0];
+    auto knot02 = knots[handle][handle_index][1];
+
+    double knot11 = 0, knot12 = 0, knot_21 = 0, knot_22 = 0;
+    // Get transformation from values from hindex - 1 into domain of handle
+    double transform_0_1 = 1, transform_01 = 1;
+    if (!mesh.get_face_of_half_edge(edge_h_1)) {
+        // we are on a border edge; no transformations necessary
+	// however, we must account for the transverse knot intervals
+	knot_21 = 0;
+        knot_22	= 0;
+
+	// clockwise halfedge must have a valid face
+	auto face_h1 = mesh.get_face_of_half_edge(edge_h1).expect(EXPECT_NO_BORDER);
+	if (face_h0 != face_h1) {
+	    auto edge_between_0_and1 = mesh.get_half_edge_between(face_h0, face_h1).expect(EXPECT_NO_BORDER);
+	    transform_01 = expect(mesh.get_knot_factor(edge_between_0_and1), EXPECT_NO_BORDER);
+	}
+
+	knot11 = knots[handle][index1][0] * transform_01;
+	knot12 = knots[handle][index1][1] * transform_01;
+    }
+    else
+    {
+        knot11 = 0;
+	knot12 = 0;
+
+        auto face_h_1 = mesh.get_face_of_half_edge(edge_h_1).expect(EXPECT_NO_BORDER);
+        // extract appropriate transformation if moving to a different face
+	if (face_h0 != face_h_1) {
+	    auto edge_bewteen_0_and_1 = mesh.get_half_edge_between(face_h0, face_h_1).expect(EXPECT_NO_BORDER);
+	    transform_0_1 = expect(mesh.get_knot_factor(edge_bewteen_0_and_1), EXPECT_NO_BORDER);
+	}
+
+	// 2x ccw halfedge must have invalid face with transformation given by the 1x ccw halfedge face 
+	knot_21 = knots[handle][index_2][0] * transform_0_1;
+	knot_22 = knots[handle][index_2][1] * transform_0_1;
+    }
+
+    // Get two knot values for handle with index - 1 and transform them into the domain of the current handle
+    auto knot_11 = knots[handle][index_1][0] * transform_0_1;
+    auto knot_12 = knots[handle][index_1][1] * transform_0_1;
+
+    local_knot_vectors out(
+        {-knot_21 - knot_22, -knot_21, 0, knot01, knot01 + knot02},
+        {-knot11 - knot12, -knot11, 0, knot_11, knot_11 + knot_12}
+    );
+    return out;
+}
+
+local_knot_vectors surface_evaluator::get_valence2_border_knot_vectors(vertex_handle handle, size_t handle_index) const {
+    // extract the halfedge and tag from the handle
+    auto [edge_h0, tag0] = handles[handle][handle_index];
+
+    // current call routines demand that this will have a non-empty face
+    auto face_h0 = mesh.get_face_of_half_edge(edge_h0).expect(EXPECT_NO_BORDER);
+
+    // Get half edge and face handle for index - 1 cw (which is + 1 ccw)
+    auto index_1 = (handles[handle].size() + handle_index - 1) % handles[handle].size();
+
+    auto knot01 = knots[handle][handle_index][0];
+    auto knot02 = knots[handle][handle_index][1];
+    auto knot_11 = knots[handle][index_1][0];
+    auto knot_12 = knots[handle][index_1][1];
+    
+    local_knot_vectors out(
+        {0, 0, 0, knot01, knot01 + knot02},
+	{0, 0, 0, knot_11, knot_11 + knot_12}
+    );
+    return out;
+}
+
 void surface_evaluator::update_cache() {
     calc_local_coords();
     calc_edge_trans();
@@ -501,7 +647,7 @@ void surface_evaluator::calc_local_coords() {
 	    // TODO -- adjust this!
 	    //      -- when adjusted, we may need an index map
 	    // This actually may just mean that we need knot intervals defined on the mesh...
-            auto k = expect(mesh.get_knot_interval(eh), EXPECT_NO_BORDER);
+            auto k = expect(mesh.get_knot_interval(eh), "extraction of a knot interval on a half-edge corresponding to a face failed");
 	    // rotate the vector by pi/2 * i and add to current position 
             c += rotate(i, vec2(k, 0));
 
@@ -513,7 +659,7 @@ void surface_evaluator::calc_local_coords() {
 	    // if the edge handle terminates at a corner, iterate by 90 degrees
 	    // TODO -- I do not think that we need an EXPECT_NO_BORDER exception here
 	    //      -- probably more like an expected corners exception
-            if (expect(mesh.corner(eh), EXPECT_NO_BORDER)) {
+            if (expect(mesh.corner(eh), "Corners on the mesh are not defined")) {
                 i += 1;
             }
         }
@@ -529,17 +675,25 @@ void surface_evaluator::calc_edge_trans() {
     for (const auto& eh: mesh.get_half_edges()) {
 	// find the opposite halfedge
         auto twin = mesh.get_twin(eh);
-	// assure that knots are defined on both knot and its twin
-	// if so, find scaling from this half-edge to the opposite half-edge
-        auto f = expect(mesh.get_knot_factor(twin), EXPECT_NO_BORDER);
-	// if coordinate systems are the same, the twin will travel in the opposite direction of
-	// the current, so there will be no additional rotation; otherwise, account for rotations
-        auto r = static_cast<uint8_t>((dir[twin] - dir[eh] + 6) % 4);
-	// translation from one coordinate system to the next
-	// TODO -- check that this is correct
-        auto t = uv[mesh.get_prev(twin)] - (f * rotate(r, uv[eh]));
-	// return transformation map across the face
-        edge_trans.insert(eh, transform(f, r, t));
+	// if twin or its opposite are on a border, make the transformation null
+	if (!mesh.get_face_of_half_edge(eh) || !mesh.get_face_of_half_edge(twin)) { 
+	    vec2 c(0,0);
+            edge_trans.insert(eh, transform(1, 0, c));
+        }
+	// neither the twin nor its opposite are on a border
+	else {
+	    // assure that knots are defined on both knot and its twin
+	    // if so, find scaling from this half-edge to the opposite half-edge
+	    auto f = expect(mesh.get_knot_factor(twin), "Knot factor not defined for an edge between two valid faces");
+	    // if coordinate systems are the same, the twin will travel in the opposite direction of
+	    // the current, so there will be no additional rotation; otherwise, account for rotations
+	    auto r = static_cast<uint8_t>((dir[twin] - dir[eh] + 6) % 4);
+	    // translation from one coordinate system to the next
+	    // TODO -- check that this is correct
+	    auto t = uv[mesh.get_prev(twin)] - (f * rotate(r, uv[eh]));
+	    // return transformation map across the face
+	    edge_trans.insert(eh, transform(f, r, t));
+	}
     }
 }
 
@@ -560,7 +714,14 @@ basis_fun_trans_map surface_evaluator::setup_basis_funs() {
         handles[vh].reserve(mesh.get_valence(vh));
 	// iterate on outgoing halfedges
         for (const auto& eh: mesh.get_half_edges_of_vertex(vh, edge_direction::outgoing)) {
-            // find the transformation that takes the outgoing halfedge from this vertex
+            // if this is on a border, it as on the border
+	    if (!mesh.get_face_of_half_edge(eh)) {
+	        handles[vh].emplace_back(eh, tag::border);
+		vec2 c(0, 0);
+		transforms[vh].emplace_back(1, 0, c);
+		continue;
+	    }
+	    // find the transformation that takes the outgoing halfedge from this vertex
 	    // on this face to the face's half-edge emanating from (0,0) in the positive u direction
 	    handles[vh].emplace_back(eh, tag::positive_u);
             auto r = static_cast<uint8_t>(4 - dir[eh]);
@@ -570,10 +731,15 @@ basis_fun_trans_map surface_evaluator::setup_basis_funs() {
 
 	    // look at the opposite halfedge
             auto twin = mesh.get_twin(eh);
+	    // if on a border, no additional work needs to be performed (no T-junctions on borders)
+	    if (!mesh.get_face_of_half_edge(twin)) {
+	        continue;
+	    }
 	    // TODO -- determine why this is necessary
 	    // if it does not point into a corner, mark the next as negative v
 	    // THIS IMPLICITLY ASSUMES AT MOST ONE T-JUNCTION PER FACE; THIS MAY NEED MODIFICATION 
-            if (!expect(mesh.corner(twin), EXPECT_NO_BORDER)) {
+            // Correction: This assumes that T-junctions extensions are described by the negative_v tag
+	    else if (!expect(mesh.corner(twin), "Corners are to be defined on valid faces")) {
                 auto next_of_twin = mesh.get_next(twin);
                 handles[vh].emplace_back(next_of_twin, tag::negative_v);
 		// transformation taking the outgoing halfedge from this vertex on this face to the
@@ -602,19 +768,43 @@ void surface_evaluator::calc_knots() {
         knots.insert(vh, vector<array<double, 2>>());
         knots[vh].reserve(mesh.get_valence(vh));
         for (auto [h, q]: handles[vh]) {
-            double s = 0;
+	    double s = 0;
             uint32_t j = 1;
 	    // put a zero value at the back
             knots[vh].emplace_back();
             auto& current_knot = knots[vh].back();
+
+	    // border halfedge; knots are 0,0
+	    if (q == tag::border) {
+		auto twin = mesh.get_twin(h);
+		current_knot[j - 1] += expect(mesh.get_knot_interval(twin), "Twin to a half-edge with no face should have a valid knot interval");
+	        j += 1;
+
+		// flip to next face
+		auto prev = mesh.get_prev(twin);
+		auto iter_h = mesh.get_prev(mesh.get_twin(prev));
+
+		// case when we are at a valence 2 border point
+		if (iter_h == h) {
+		    current_knot[j - 1] = 0;
+		    continue;
+		}
+		// all other cases
+		else {
+		    auto f = expect(mesh.get_knot_factor(prev), "knot factor should be valid for an edge between two valid faces");
+		    current_knot[j - 1] += f * expect(mesh.get_knot_interval(iter_h), "knot interval should be valid for this half-edge");
+		    continue;
+		}
+		
+	    }
 
             // no edge in u direction (T-joint), so walk “around” face
             // more accurately -- walk to the next corner while accounting for
 	    //  -- knot interval displacement (s)
 	    //  -- halfedge (h)
 	    if (q == tag::negative_v) {
-                while (!expect(mesh.from_corner(h), EXPECT_NO_BORDER)) {
-                    s += expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER);
+                while (!expect(mesh.from_corner(h), "a T-junction should always terminate in a face, and should thus have a corner")) {
+                    s += expect(mesh.get_knot_interval(h), "faces at which a T-junction terminates should have valid knot intervals");
                     h = mesh.get_next(h);
                 }
             }
@@ -622,7 +812,7 @@ void surface_evaluator::calc_knots() {
             bool skip = false;
 	    bool visited_once = false;
             do {
-                current_knot[j - 1] += expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER);
+                current_knot[j - 1] += expect(mesh.get_knot_interval(h), "half-edge with a u-direction tag or after a set of v-direction iterations should have a valid knot interval");
 
                 // first intersection on ray encountered
                 if (s == 0) {
@@ -642,7 +832,7 @@ void surface_evaluator::calc_knots() {
 		    panic(fail);
 		}
 		visited_once = true;
-            } while(!expect(mesh.from_corner(h), EXPECT_NO_BORDER));
+            } while(!expect(mesh.from_corner(h), "all half-edges in a valid face should have a valid knot interval"));
 
             if (skip) {
                 continue;
@@ -651,26 +841,35 @@ void surface_evaluator::calc_knots() {
             j = 2;
 
 	    // iterate to the portion of the mesh that corresponds to the current T-junction
-            while (s >= expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER)) {
-                s -= expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER);
-                h = mesh.get_next(h);
+            int tmp_int = expect(mesh.get_knot_interval(h), "half-edges on the opposite side of T-junction should have valid intervals");
+	    while (s >= tmp_int) {
+                s -= tmp_int;
+		h = mesh.get_next(h);
+		tmp_int = expect(mesh.get_knot_interval(h), "half-edges on the opposite side of T-junction should have valid intervals (2)");
+		// break if reached a corner; if valid, this must correspond to a face with zero interval
+		if (expect(mesh.corner(h), "should have valid corner"))
+		    break;
             }
 
-	    // flip to the next face
-            auto f = expect(mesh.get_knot_factor(h), EXPECT_NO_BORDER);
-            h = mesh.get_twin(h);
-
+	    // the next face is on the border, so it has an implicit knot interval of 0
+	    if (mesh.is_border(mesh.get_twin(h))) {
+	        current_knot[j - 1] = 0;
+		continue;
+	    }
             // iterate to next corner (so the same direction as current knot vector)
-            while (!expect(mesh.corner(h), EXPECT_NO_BORDER)) {
+            auto f = expect(mesh.get_knot_factor(h), "if half-edge and twin both have valid faces, the knot factor should also be valid");
+	    // flip to the next face
+            h = mesh.get_twin(h);
+            while (!expect(mesh.corner(h), "valid face should have corners defined")) {
                 h = mesh.get_next(h);
-                s += f * expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER);
+                s += f * expect(mesh.get_knot_interval(h), "for a valid face, all half-edges next to T-junctions should have valid knot intervals");
             }
 
             h = mesh.get_next(h);
             skip = false;
 	    visited_once = false;
             do {
-                current_knot[j - 1] += f * expect(mesh.get_knot_interval(h), EXPECT_NO_BORDER);
+                current_knot[j - 1] += f * expect(mesh.get_knot_interval(h), "for a valid face, all half-edges should have valid knot intervals");
 
                 if (s == 0) {
                     skip = true;
@@ -684,7 +883,7 @@ void surface_evaluator::calc_knots() {
 
 		visited_once = true;
                 h = mesh.get_next(h);
-            } while(!expect(mesh.from_corner(h), EXPECT_NO_BORDER));
+            } while(!expect(mesh.from_corner(h), "valid faces should have corners defined"));
 
             if (skip) {
                 continue;
@@ -714,12 +913,20 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
         for (const auto& [h, q]: handles[vh]) {
             tagged.clear();
 
+	    // basis functions from halfedges should never be called
+	    if (q == tag::border) {
+		 // insert empty place-holder struct for correct indexing
+		 knot_vectors[vh].push_back(local_knot_vectors({},{}));
+		 handle_index += 1;
+		 continue;
+	    }
             queue<tuple<half_edge_handle, transform>> bfs_queue;
 
             bfs_queue.push({h, transforms[vh][handle_index]});
             auto face_h = mesh.get_face_of_half_edge(h).expect(EXPECT_NO_BORDER);
             tagged[face_h] = true;
 
+	    // determine the domain of basis function and its support in CCW direction
             auto r = get_parametric_domain(vh, handle_index);
 
             // Cache local knot vectors for faster surface evaluation
@@ -731,7 +938,7 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
                 auto [ch, ct] = bfs_queue.front();
                 bfs_queue.pop();
 		// face of the current half-edge
-                auto cface_h = mesh.get_face_of_half_edge(ch).expect(EXPECT_NO_BORDER);
+                auto cface_h = mesh.get_face_of_half_edge(ch).expect("the bredth-first search queue should always yield half-edges with valid faces");
 		// add this face to the support if it has not already been added
                 if (!support.contains_key(cface_h)) {
                     support.insert(cface_h, vector<tuple<vertex_handle, index, transform>>());
@@ -753,7 +960,12 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
                     }
 
                     auto twin = mesh.get_twin(g);
-                    auto twin_face_h = mesh.get_face_of_half_edge(twin).expect(EXPECT_NO_BORDER);
+		    // if the twin has no face, iterate to the next object
+                    if(!mesh.get_face_of_half_edge(twin)) {
+		        g = mesh.get_next(g);
+			continue;
+		    }
+		    auto twin_face_h = mesh.get_face_of_half_edge(twin).expect("face of twin should be valid because of vetting performed in previous few lines");
                     if (tagged[twin_face_h]) {
                         g = mesh.get_next(g);
                         continue;

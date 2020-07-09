@@ -8,6 +8,21 @@
 namespace tsl {
 
 tmesh read_obj_into_tmesh(const string& file_path) {
+//    return read_obj_into_boundary_interpolant_tmesh(file_path);
+    return read_obj_into_tmesh_no_boundary_interpolant(file_path);
+}
+
+tmesh read_obj_into_boundary_interpolant_tmesh(const string& file_path) {
+    // read the mesh and use default knot intervals
+    tmesh out = read_obj_into_tmesh_no_boundary_interpolant(file_path);
+    
+    // for border faces, make all knot intervals transverse to the boundary zero
+    out.zero_transverse_boundary_edge_knot_intervals();
+
+    return out;
+}
+
+tmesh read_obj_into_tmesh_no_boundary_interpolant(const string& file_path) {
 
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
