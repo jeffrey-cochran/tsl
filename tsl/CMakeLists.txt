@@ -34,12 +34,11 @@ add_subdirectory(src)
 add_subdirectory(test)
 
 # Make sure to copy eigenvalue files to the build location if building from tse
-# Also, define the build location of test data based on whether TSE used or not
 if(${TSE_BUILD})
     file(COPY eigenvalues DESTINATION ${COPY_TARGET})
 endif()
 
-# set target for copying the test data
+# set location for copying the test data
 set(COPY_TEST_TARGET ${CMAKE_CURRENT_BINARY_DIR}/test/src)
 # copy eigenvalue and mesh files used in testing to the appropriate location
 file(COPY eigenvalues DESTINATION ${COPY_TEST_TARGET})
