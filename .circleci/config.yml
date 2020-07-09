@@ -4,8 +4,8 @@ executors:
   ubuntu-build:
     description: "A regular build executor based on ubuntu image"
     docker:
-      - image: jovobe/tsl-build-docker-test:latest
-    working_directory: /source
+      - image: jdc6284/tsl-test
+    working_directory: /home/git/tsl
 
 jobs:
   build:
@@ -13,11 +13,11 @@ jobs:
     steps:
       - checkout
       - run: git submodule update --init --recursive
-      - run: cd /build && cmake /source/tse -DCMAKE_BUILD_TYPE=Release
-      - run: cmake --build /build
-      - run: cmake --build /build --target tsl_tests
+      - run: cd /home/build && cmake /home/git/tsl/tse -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build /home/build
+      - run: cmake --build /home/build --target tsl_tests
       - persist_to_workspace:
-          root: /build
+          root: /home/build
           paths:
             - tsl/test/src/tsl_tests
 
@@ -26,8 +26,8 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: /build
-      - run: cd /source/tsl && /build/tsl/test/src/tsl_tests
+          at: /home/build
+      - run: cd /home/git/tsl/tsl && /home/build/tsl/test/src/tsl_tests
 
 workflows:
   version: 2.1
