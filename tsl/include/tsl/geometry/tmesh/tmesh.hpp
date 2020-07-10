@@ -50,7 +50,7 @@ public:
      *
      * @return A handle to access the inserted vertex later.
      */
-    vertex_handle add_vertex(vec3 pos);
+    vertex_handle add_vertex(vec3 pos, bool is_control_mesh_vertex);
 
     /**
      * @brief Check whether or not inserting a face between the given vertices
@@ -119,6 +119,13 @@ public:
      */
     void zero_transverse_boundary_edge_knot_intervals(); 
     
+    /**
+     * @brief Extend the mesh to be the extended T-mesh depicting Bezier faces
+     *
+     * Extends T-junctions by two bays to depict the Bezier mesh of the spline surface
+     */
+    void extend_to_bezier_mesh();
+
     // ========================================================================
     // = Get numbers
     // ========================================================================
@@ -569,6 +576,7 @@ public:
     tmesh_vertex_iterator_proxy get_vertices() const;
 
 private:
+    bool is_bezier_mesh = false;
     stable_vector<half_edge_handle, half_edge> edges;
     stable_vector<face_handle, face> faces;
     stable_vector<vertex_handle, vertex> vertices;

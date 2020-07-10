@@ -19,6 +19,9 @@ struct vertex
 
     /// The 3D position of this vertex.
     vec3 pos;
+
+    /// if the vertex is a control mesh vertex or a virtual vertex of Bezier grid
+    bool control_mesh_vertex;
 };
 
 }

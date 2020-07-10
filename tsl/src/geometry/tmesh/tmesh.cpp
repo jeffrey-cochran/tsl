@@ -24,9 +24,10 @@ namespace tsl {
 // ========================================================================
 // = Modifier
 // ========================================================================
-vertex_handle tmesh::add_vertex(vec3 pos) {
+vertex_handle tmesh::add_vertex(vec3 pos, bool is_control_mesh_vertex) {
     vertex v;
     v.pos = pos;
+    v.control_mesh_vertex = is_control_mesh_vertex;
     return vertices.push(v);
 }
 
@@ -180,7 +181,11 @@ face_handle tmesh::add_face(const vector<new_face_vertex>& new_vertices) {
             e_inner.face = optional_face_handle(new_face_h);
             e_inner.knot = target.knot;
             e_inner.corner = target.corner;
-            outer_handles.push_back(get_twin(e_inner_h));
+	    e_inner.control_mesh_half_edge = true;
+	    auto e_outer_h = get_twin(e_inner_h);
+	    auto& e_outer = get_e(e_outer_h);
+            outer_handles.push_back(e_outer_h);
+	    e_outer.control_mesh_half_edge = true;
         }
     }
 
@@ -611,6 +616,19 @@ void tmesh::zero_transverse_boundary_edge_knot_intervals()
 
 }
 
+void tmesh::extend_to_bezier_mesh()
+{
+    // the mesh has not yet been extended to the Bezier mesh; extend it
+    if (!is_bezier_mesh) {
+        // the following proceeds in three steps:
+	// (1) associate with each t-junction the two edges perpendicular to in in parametric domain
+	// (2) Iteratively introduce virtual edges which mark decreases in continuity and generate the 
+	//     Bezier grid. If splitting a face with new edges, associate with original edges their children.
+	// (3) Stop when both parent transverse edges (or a representative child from each) is encountered;
+	//     terminate when all T-junctions have been accounted for
+    }
+}
+
 // ========================================================================
 // = Get numbers
 // ========================================================================
@@ -737,6 +755,7 @@ optional<bool> tmesh::facial_parametric_domain_is_degenerate(face_handle handle)
 
     // default (which should never be hit
     panic("Should not ever reach this; knot intervals and corners are ill-defined on the mesh");
+    return nullopt;
 }
 
 optional<bool> tmesh::corner(half_edge_handle handle) const {

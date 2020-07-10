@@ -20,27 +20,27 @@ void TmeshTestWithCubeData::SetUp() {
     //       (v8) ====== (v7) ====== (v6)
 
     // f0
-    auto v0 = mesh.add_vertex({0, 0, 0});
-    auto v1 = mesh.add_vertex({0, 0, 0});
-    auto v2 = mesh.add_vertex({0, 0, 0});
-    auto v3 = mesh.add_vertex({0, 0, 0});
+    auto v0 = mesh.add_vertex({0, 0, 0}, true);
+    auto v1 = mesh.add_vertex({0, 0, 0}, true);
+    auto v2 = mesh.add_vertex({0, 0, 0}, true);
+    auto v3 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v0, v1, v2, v3}));
     vertex_handles.insert(vertex_handles.end(), {v0, v1, v2, v3});
 
     // f1
-    auto v4 = mesh.add_vertex({0, 0, 0});
-    auto v5 = mesh.add_vertex({0, 0, 0});
+    auto v4 = mesh.add_vertex({0, 0, 0}, true);
+    auto v5 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v1, v4, v5, v2}));
     vertex_handles.insert(vertex_handles.end(), {v4, v5});
 
     // f2
-    auto v6 = mesh.add_vertex({0, 0, 0});
-    auto v7 = mesh.add_vertex({0, 0, 0});
+    auto v6 = mesh.add_vertex({0, 0, 0}, true);
+    auto v7 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v3, v2, v7, v6}));
     vertex_handles.insert(vertex_handles.end(), {v6, v7});
 
     // f3
-    auto v8 = mesh.add_vertex({0, 0, 0});
+    auto v8 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v2, v5, v8, v7}));
     vertex_handles.insert(vertex_handles.end(), {v8});
 
@@ -61,24 +61,24 @@ void TmeshTestWithCubeData::SetUp() {
     //       (v14) ===== (v13) ===== (v8)
 
     // f4
-    auto v9 = mesh.add_vertex({0, 0, 0});
-    auto v10 = mesh.add_vertex({0, 0, 0});
+    auto v9 = mesh.add_vertex({0, 0, 0}, true);
+    auto v10 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v4, v9, v10, v5}));
     vertex_handles.insert(vertex_handles.end(), {v9, v10});
 
     // f5
-    auto v11 = mesh.add_vertex({0, 0, 0});
-    auto v12 = mesh.add_vertex({0, 0, 0});
+    auto v11 = mesh.add_vertex({0, 0, 0}, true);
+    auto v12 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v9, v11, v12, v10}));
     vertex_handles.insert(vertex_handles.end(), {v11, v12});
 
     // f6
-    auto v13 = mesh.add_vertex({0, 0, 0});
+    auto v13 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v5, v10, v13, v8}));
     vertex_handles.insert(vertex_handles.end(), {v13});
 
     // f7
-    auto v14 = mesh.add_vertex({0, 0, 0});
+    auto v14 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v10, v12, v14, v13}));
     vertex_handles.insert(vertex_handles.end(), {v14});
 
@@ -99,24 +99,24 @@ void TmeshTestWithCubeData::SetUp() {
     //       (v20) ===== (v19) ===== (v14)
 
     // f8
-    auto v15 = mesh.add_vertex({0, 0, 0});
-    auto v16 = mesh.add_vertex({0, 0, 0});
+    auto v15 = mesh.add_vertex({0, 0, 0}, true);
+    auto v16 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v11, v15, v16, v12}));
     vertex_handles.insert(vertex_handles.end(), {v15, v16});
 
     // f9
-    auto v17 = mesh.add_vertex({0, 0, 0});
-    auto v18 = mesh.add_vertex({0, 0, 0});
+    auto v17 = mesh.add_vertex({0, 0, 0}, true);
+    auto v18 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v15, v17, v18, v16}));
     vertex_handles.insert(vertex_handles.end(), {v17, v18});
 
     // f10
-    auto v19 = mesh.add_vertex({0, 0, 0});
+    auto v19 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v12, v16, v19, v14}));
     vertex_handles.insert(vertex_handles.end(), {v19});
 
     // f11
-    auto v20 = mesh.add_vertex({0, 0, 0});
+    auto v20 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v16, v18, v20, v19}));
     vertex_handles.insert(vertex_handles.end(), {v20});
 
@@ -137,8 +137,8 @@ void TmeshTestWithCubeData::SetUp() {
     //       (v6) ====== (v23) ===== (v20)
 
     // f12
-    auto v21 = mesh.add_vertex({0, 0, 0});
-    auto v22 = mesh.add_vertex({0, 0, 0});
+    auto v21 = mesh.add_vertex({0, 0, 0}, true);
+    auto v22 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v17, v21, v22, v18}));
     vertex_handles.insert(vertex_handles.end(), {v21, v22});
 
@@ -146,7 +146,7 @@ void TmeshTestWithCubeData::SetUp() {
     face_handles.push_back(mesh.add_face({v21, v0, v3, v22}));
 
     // f14
-    auto v23 = mesh.add_vertex({0, 0, 0});
+    auto v23 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v18, v22, v23, v20}));
     vertex_handles.insert(vertex_handles.end(), {v23});
 
@@ -174,7 +174,7 @@ void TmeshTestWithCubeData::SetUp() {
     //                   FRONT
 
     // f16
-    auto v24 = mesh.add_vertex({0, 0, 0});
+    auto v24 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v17, v15, v24, v21}));
     vertex_handles.insert(vertex_handles.end(), {v24});
 
@@ -208,7 +208,7 @@ void TmeshTestWithCubeData::SetUp() {
     //                   BACK
 
     // f20
-    auto v25 = mesh.add_vertex({0, 0, 0});
+    auto v25 = mesh.add_vertex({0, 0, 0}, true);
     face_handles.push_back(mesh.add_face({v6, v7, v25, v23}));
     vertex_handles.insert(vertex_handles.end(), {v25});
 
@@ -235,14 +235,14 @@ void TmeshTestWithTfaceTest::SetUp() {
     //         v6 ============ v7
 
     auto& hem = mesh;
-    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0)));
-    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0)));
-    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0)));
-    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0)));
-    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0)));
-    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0)));
-    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0)));
-    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0)));
+    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0), true));
+    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0), true));
+    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0), true));
+    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0), true));
+    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0), true));
+    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0), true));
+    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0), true));
+    vertex_handles.push_back(hem.add_vertex(vec3(0, 0, 0), true));
 
     face_handles.push_back(hem.add_face({vertex_handles[1], vertex_handles[0], vertex_handles[3], vertex_handles[4]}));
     face_handles.push_back(hem.add_face({vertex_handles[2], vertex_handles[1], vertex_handles[4], vertex_handles[5]}));
@@ -297,7 +297,7 @@ void TmeshTestAsGrid::SetUp() {
 
     // Add 30 vertices
     for (uint32_t i = 0; i <= 89; ++i) {
-        vertex_handles.push_back(mesh.add_vertex(vec3(0, 0, 0)));
+        vertex_handles.push_back(mesh.add_vertex(vec3(0, 0, 0), true));
     }
 
     uint32_t width = 9;

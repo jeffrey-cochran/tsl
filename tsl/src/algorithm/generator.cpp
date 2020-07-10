@@ -20,7 +20,8 @@ tmesh tmesh_cube(uint32_t size, double edge_length) {
                     static_cast<double>(x * edge_length),
                     static_cast<double>(0),
                     static_cast<double>(z * edge_length)
-                )
+                ),
+		true
             );
             front_vertices.push_back(vh);
         }
@@ -64,7 +65,8 @@ tmesh tmesh_cube(uint32_t size, double edge_length) {
                     static_cast<double>(0),
                     static_cast<double>(y * edge_length),
                     static_cast<double>(z * edge_length)
-                )
+                ),
+		true
             );
             left_vertices.push_back(vh);
         }
@@ -121,7 +123,8 @@ tmesh tmesh_cube(uint32_t size, double edge_length) {
                     static_cast<double>(x * edge_length),
                     static_cast<double>((size - 1) * edge_length),
                     static_cast<double>(z * edge_length)
-                )
+                ),
+		true
             );
             back_vertices.push_back(vh);
         }
@@ -178,7 +181,8 @@ tmesh tmesh_cube(uint32_t size, double edge_length) {
                     static_cast<double>((size - 1) * edge_length),
                     static_cast<double>(y * edge_length),
                     static_cast<double>(z * edge_length)
-                )
+                ),
+		true
             );
             right_vertices.push_back(vh);
         }
@@ -248,7 +252,8 @@ tmesh tmesh_cube(uint32_t size, double edge_length) {
                     static_cast<double>(x * edge_length),
                     static_cast<double>(y * edge_length),
                     static_cast<double>((size - 1) * edge_length)
-                )
+                ),
+		true
             );
             top_vertices.push_back(vh);
         }
@@ -374,7 +379,8 @@ tmesh tmesh_cube(uint32_t size, double edge_length) {
                     static_cast<double>(x * edge_length),
                     static_cast<double>(y * edge_length),
                     static_cast<double>(0)
-                )
+                ),
+		true
             );
             bottom_vertices.push_back(vh);
         }

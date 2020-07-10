@@ -14,11 +14,11 @@ protected:
 };
 
 TEST_F(TmeshTest, IsFaceInsertionValid) {
-    auto v1 = mesh.add_vertex({0, 0, 0});
-    auto v2 = mesh.add_vertex({0, 0, 0});
-    auto v3 = mesh.add_vertex({0, 0, 0});
-    auto v4 = mesh.add_vertex({0, 0, 0});
-    auto v5 = mesh.add_vertex({0, 0, 0});
+    auto v1 = mesh.add_vertex({0, 0, 0}, true);
+    auto v2 = mesh.add_vertex({0, 0, 0}, true);
+    auto v3 = mesh.add_vertex({0, 0, 0}, true);
+    auto v4 = mesh.add_vertex({0, 0, 0}, true);
+    auto v5 = mesh.add_vertex({0, 0, 0}, true);
 
     // Test number of vertices
     EXPECT_FALSE(mesh.is_face_insertion_valid(vector<new_face_vertex>()));
@@ -55,10 +55,10 @@ TEST_F(TmeshTest, IsFaceInsertionValid) {
 }
 
 TEST_F(TmeshTest, IsFaceInsertionValidSameVertices) {
-    auto v1 = mesh.add_vertex({0, 0, 0});
-    auto v2 = mesh.add_vertex({0, 0, 0});
-    auto v3 = mesh.add_vertex({0, 0, 0});
-    auto v4 = mesh.add_vertex({0, 0, 0});
+    auto v1 = mesh.add_vertex({0, 0, 0}, true);
+    auto v2 = mesh.add_vertex({0, 0, 0}, true);
+    auto v3 = mesh.add_vertex({0, 0, 0}, true);
+    auto v4 = mesh.add_vertex({0, 0, 0}, true);
 
     EXPECT_TRUE(mesh.is_face_insertion_valid({v1, v2, v3, v4}));
 
@@ -90,11 +90,11 @@ TEST_F(TmeshTest, IsFaceInsertionValidTmeshConstraints) {
 }
 
 TEST_F(TmeshTest, AddFace) {
-    auto v1 = new_face_vertex(mesh.add_vertex({0, 0, 0}), false, 1.0);
-    auto v2 = new_face_vertex(mesh.add_vertex({0, 0, 0}), true, 1.0);
-    auto v3 = new_face_vertex(mesh.add_vertex({0, 0, 0}), true, 1.0);
-    auto v4 = new_face_vertex(mesh.add_vertex({0, 0, 0}), true, 1.0);
-    auto v5 = new_face_vertex(mesh.add_vertex({0, 0, 0}), true, 1.0);
+    auto v1 = new_face_vertex(mesh.add_vertex({0, 0, 0}, true), false, 1.0);
+    auto v2 = new_face_vertex(mesh.add_vertex({0, 0, 0}, true), true, 1.0);
+    auto v3 = new_face_vertex(mesh.add_vertex({0, 0, 0}, true), true, 1.0);
+    auto v4 = new_face_vertex(mesh.add_vertex({0, 0, 0}, true), true, 1.0);
+    auto v5 = new_face_vertex(mesh.add_vertex({0, 0, 0}, true), true, 1.0);
 
     EXPECT_TRUE(mesh.is_face_insertion_valid({v1, v2, v3, v4, v5}));
 
@@ -110,8 +110,8 @@ TEST_F(TmeshTest, AddFace) {
 }
 
 TEST_F(TmeshTest, GetVertexPosition) {
-    auto v1 = mesh.add_vertex({0, 0, 0});
-    auto v2 = mesh.add_vertex({1, 2, 3});
+    auto v1 = mesh.add_vertex({0, 0, 0}, true);
+    auto v2 = mesh.add_vertex({1, 2, 3}, true);
 
     {
         const auto& mesh_const = mesh;
@@ -127,13 +127,13 @@ TEST_F(TmeshTest, GetVertexPosition) {
 }
 
 TEST_F(TmeshTest, GetVerticesOfFace) {
-    auto v0 = mesh.add_vertex({0, 0, 0});
-    auto v1 = mesh.add_vertex({0, 0, 0});
-    auto v2 = mesh.add_vertex({0, 0, 0});
-    auto v3 = mesh.add_vertex({0, 0, 0});
+    auto v0 = mesh.add_vertex({0, 0, 0}, true);
+    auto v1 = mesh.add_vertex({0, 0, 0}, true);
+    auto v2 = mesh.add_vertex({0, 0, 0}, true);
+    auto v3 = mesh.add_vertex({0, 0, 0}, true);
 
-    auto v4 = mesh.add_vertex({0, 0, 0});
-    auto v5 = mesh.add_vertex({0, 0, 0});
+    auto v4 = mesh.add_vertex({0, 0, 0}, true);
+    auto v5 = mesh.add_vertex({0, 0, 0}, true);
 
     vector<face_handle> face_handles;
 
@@ -165,10 +165,10 @@ TEST_F(TmeshTest, GetVerticesOfFace) {
 
 // TODO: Implement orientability check in `tmesh::add_face()`
 TEST_F(TmeshTest, Orientability) {
-    auto v0 = mesh.add_vertex({0, 0, 0});
-    auto v1 = mesh.add_vertex({0, 0, 0});
-    auto v2 = mesh.add_vertex({0, 0, 0});
-    auto v3 = mesh.add_vertex({0, 0, 0});
+    auto v0 = mesh.add_vertex({0, 0, 0}, true);
+    auto v1 = mesh.add_vertex({0, 0, 0}, true);
+    auto v2 = mesh.add_vertex({0, 0, 0}, true);
+    auto v3 = mesh.add_vertex({0, 0, 0}, true);
 
 //    auto v4 = mesh.add_vertex({0, 0, 0});
 //    auto v5 = mesh.add_vertex({0, 0, 0});
@@ -180,10 +180,10 @@ TEST_F(TmeshTest, Orientability) {
 }
 
 TEST_F(TmeshTest, VertexIterator) {
-    auto v0 = mesh.add_vertex({0, 0, 0});
-    auto v1 = mesh.add_vertex({0, 0, 0});
-    auto v2 = mesh.add_vertex({0, 0, 0});
-    auto v3 = mesh.add_vertex({0, 0, 0});
+    auto v0 = mesh.add_vertex({0, 0, 0}, true);
+    auto v1 = mesh.add_vertex({0, 0, 0}, true);
+    auto v2 = mesh.add_vertex({0, 0, 0}, true);
+    auto v3 = mesh.add_vertex({0, 0, 0}, true);
 
     vector<vertex_handle> expected_handles;
     expected_handles.insert(expected_handles.begin(), {v0, v1, v2, v3});
@@ -196,15 +196,15 @@ TEST_F(TmeshTest, VertexIterator) {
 }
 
 TEST_F(TmeshTest, FaceIterator) {
-    auto v0 = mesh.add_vertex({0, 0, 0});
-    auto v1 = mesh.add_vertex({0, 0, 0});
-    auto v2 = mesh.add_vertex({0, 0, 0});
-    auto v3 = mesh.add_vertex({0, 0, 0});
+    auto v0 = mesh.add_vertex({0, 0, 0}, true);
+    auto v1 = mesh.add_vertex({0, 0, 0}, true);
+    auto v2 = mesh.add_vertex({0, 0, 0}, true);
+    auto v3 = mesh.add_vertex({0, 0, 0}, true);
 
-    auto v4 = mesh.add_vertex({0, 0, 0});
-    auto v5 = mesh.add_vertex({0, 0, 0});
-    auto v6 = mesh.add_vertex({0, 0, 0});
-    auto v7 = mesh.add_vertex({0, 0, 0});
+    auto v4 = mesh.add_vertex({0, 0, 0}, true);
+    auto v5 = mesh.add_vertex({0, 0, 0}, true);
+    auto v6 = mesh.add_vertex({0, 0, 0}, true);
+    auto v7 = mesh.add_vertex({0, 0, 0}, true);
 
     // Create the following mesh:
     //
@@ -235,10 +235,10 @@ TEST_F(TmeshTest, FaceIterator) {
 }
 
 TEST_F(TmeshTest, HalfEdgeIterator) {
-    auto v0 = mesh.add_vertex({0, 0, 0});
-    auto v1 = mesh.add_vertex({0, 0, 0});
-    auto v2 = mesh.add_vertex({0, 0, 0});
-    auto v3 = mesh.add_vertex({0, 0, 0});
+    auto v0 = mesh.add_vertex({0, 0, 0}, true);
+    auto v1 = mesh.add_vertex({0, 0, 0}, true);
+    auto v2 = mesh.add_vertex({0, 0, 0}, true);
+    auto v3 = mesh.add_vertex({0, 0, 0}, true);
 
     // Add the following face (f0):
     //
@@ -261,10 +261,10 @@ TEST_F(TmeshTest, HalfEdgeIterator) {
 }
 
 TEST_F(TmeshTest, EdgeIterator) {
-    auto v0 = mesh.add_vertex({0, 0, 0});
-    auto v1 = mesh.add_vertex({0, 0, 0});
-    auto v2 = mesh.add_vertex({0, 0, 0});
-    auto v3 = mesh.add_vertex({0, 0, 0});
+    auto v0 = mesh.add_vertex({0, 0, 0}, true);
+    auto v1 = mesh.add_vertex({0, 0, 0}, true);
+    auto v2 = mesh.add_vertex({0, 0, 0}, true);
+    auto v3 = mesh.add_vertex({0, 0, 0}, true);
 
     // Add the following face (f0):
     //
@@ -288,8 +288,8 @@ TEST_F(TmeshTest, EdgeIterator) {
 
 TEST_F(TmeshTestWithCubeData, IsFaceInsertionValidNonManifoldTripleEdge) {
     // Create non manifold triple edge
-    auto vte0 = mesh.add_vertex({0, 0, 0});
-    auto vte1 = mesh.add_vertex({0, 0, 0});
+    auto vte0 = mesh.add_vertex({0, 0, 0}, true);
+    auto vte1 = mesh.add_vertex({0, 0, 0}, true);
     auto v0 = vertex_handles[0];
     auto v3 = vertex_handles[3];
 

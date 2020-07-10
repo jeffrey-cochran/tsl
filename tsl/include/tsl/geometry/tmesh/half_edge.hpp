@@ -34,6 +34,9 @@ struct half_edge
     /// Knot interval assigned to this half edge. `nullopt` if no face is assigned.
     optional<double> knot;
 
+    /// Whether the half-edge described here is part of the control mesh or the bezier mesh
+    bool control_mesh_half_edge;
+
 private:
     /**
      * @brief Initializes all fields with dummy values (unsafe, thus private).

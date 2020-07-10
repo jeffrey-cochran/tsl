@@ -873,6 +873,7 @@ void window::draw_control_polygon(const mat4& model, const mat4& vp) const {
 
     glUniformMatrix4fv(vp_location, 1, GL_FALSE, value_ptr(vp));
     glUniformMatrix4fv(m_location, 1, GL_FALSE, value_ptr(model));
+    // edge colors
     glUniform3fv(color_location, 1, value_ptr(fvec3(1, 0, 0)));
     glUniform3fv(camera_location, 1, value_ptr(camera.get_pos()));
 
@@ -892,6 +893,7 @@ void window::draw_control_polygon(const mat4& model, const mat4& vp) const {
 
     glUniformMatrix4fv(vertex_vp_location, 1, GL_FALSE, value_ptr(vp));
     glUniformMatrix4fv(vertex_m_location, 1, GL_FALSE, value_ptr(model));
+    // vertex colors
     glUniform3fv(vertex_color_location, 1, value_ptr(fvec3(0, 0, 1)));
     glUniform3fv(vertex_camera_location, 1, value_ptr(camera.get_pos()));
     glUniform3fv(vertex_camera_up_location, 1, value_ptr(camera.get_up()));
@@ -943,6 +945,7 @@ void window::draw_surface_normals(const mat4& model, const mat4& vp) const {
 
     glUniformMatrix4fv(vp_location, 1, GL_FALSE, value_ptr(vp));
     glUniformMatrix4fv(m_location, 1, GL_FALSE, value_ptr(model));
+    // surface normal colors
     glUniform3fv(color_location, 1, value_ptr(fvec3(0, 0, 1)));
     glUniform3fv(camera_location, 1, value_ptr(camera.get_pos()));
 

@@ -31,6 +31,7 @@ tmesh read_obj_into_tmesh_no_boundary_interpolant(const string& file_path) {
     std::string warn;
     std::string err;
 
+    // load the object file
     bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, file_path.c_str(), nullptr, false);
     if (!ret) {
         if (!err.empty()) {
@@ -47,7 +48,9 @@ tmesh read_obj_into_tmesh_no_boundary_interpolant(const string& file_path) {
         panic("The .obj file containes more than one shape!");
     }
 
+    // tinyobj file
     auto mesh = shapes.front();
+    // tmesh file
     tmesh out;
     vector<vertex_handle> vertex_handles;
     vertex_handles.reserve(attrib.vertices.size() / 3);
@@ -56,7 +59,8 @@ tmesh read_obj_into_tmesh_no_boundary_interpolant(const string& file_path) {
             attrib.vertices[i + 0],
             attrib.vertices[i + 1],
             attrib.vertices[i + 2]
-        )));
+        ), true
+	));
     }
 
     // Loop over faces
