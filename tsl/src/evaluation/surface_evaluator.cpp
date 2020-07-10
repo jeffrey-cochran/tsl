@@ -679,6 +679,40 @@ void surface_evaluator::calc_local_coords() {
     }
 }
 
+//                    (1,2)   (4,3)
+// *------------------------o--------------------------x
+// |  <--------c--------    |   <--------x----------   |
+// |           1            |            3             |
+// | |                    ^ | |                      ^ |
+// | |                    | | |                      | |
+// | |                    | | |                      | |
+// | d 2       F        2 b | y 4        G         4 w |
+// | |                    | | |                      | |
+// | |                    | | |                      | |
+// | |        1           | | v           3          | |
+// |  --------a-------->    |   ----------z-------->   |
+// x------------------------x--------------------------x
+//
+// Given the knot vectors with the specified knot intervals
+// and ordering given by order in the alphabet, the corner
+// with the 'o' label has coordinates as specified above
+//
+// We are interested in computing the parametric location of o in G
+// This can be evaluated as 
+// f * R * (1,2) + t
+// Here, f is the scale factor of 2, R is a rotation by 3*90=270 degrees,
+// and the translation is computed as below
+//
+// To continue the parametric domain of G into domain F
+// we need an appropriate transition
+// the coordinates of * in F's parametric domain is (1,2)
+// [0] = [4] - 2 * [ 0  1] [1]
+// [5]   [3]       [-1  0] [2]
+//
+// where the (4,3) is given by taking w to be in the positive u direction locally,
+//           the scale factor of 2 is given as 4/2
+//           the matrix is ((2 - 1 + 6) % 4) = 3, so rotation by 3*90 degrees
+//           (1,2) is given by taking a to be in the positive u direction 
 void surface_evaluator::calc_edge_trans() {
     // compute the transformation from one edge to the other
     edge_trans.clear();
@@ -689,7 +723,7 @@ void surface_evaluator::calc_edge_trans() {
 	// find the opposite halfedge
         auto twin = mesh.get_twin(eh);
 	// if twin or its opposite are on a border, make the transformation null
-	if (!mesh.get_face_of_half_edge(eh) || !mesh.get_face_of_half_edge(twin)) { 
+	if (mesh.is_border(eh) || mesh.is_border(twin)) { 
 	    vec2 c(0,0);
             edge_trans.insert(eh, transform(1, 0, c));
         }
@@ -697,12 +731,13 @@ void surface_evaluator::calc_edge_trans() {
 	else {
 	    // assure that knots are defined on both knot and its twin
 	    // if so, find scaling from this half-edge to the opposite half-edge
+	    // Evaluations are done local to each face, so we want to transfer the information
+	    // from the original face to its twin
 	    auto f = expect(mesh.get_knot_factor(twin), "Knot factor not defined for an edge between two valid faces");
 	    // if coordinate systems are the same, the twin will travel in the opposite direction of
 	    // the current, so there will be no additional rotation; otherwise, account for rotations
 	    auto r = static_cast<uint8_t>((dir[twin] - dir[eh] + 6) % 4);
-	    // translation from one coordinate system to the next
-	    // TODO -- check that this is correct
+	    // translation from one coordinate sys
 	    auto t = uv[mesh.get_prev(twin)] - (f * rotate(r, uv[eh]));
 	    // return transformation map across the face
 	    edge_trans.insert(eh, transform(f, r, t));
@@ -717,7 +752,8 @@ basis_fun_trans_map surface_evaluator::setup_basis_funs() {
     handles.clear();
     handles.reserve(mesh.num_vertices());
     // transformations on basis functions
-    // TODO -- understand purpose here
+    // these go from the vector describing the u,v coordinates of the half-edge
+    // pointing to this vertex to the zero vector (this vector operated on by the translation is (0,0))
     transforms.reserve(mesh.num_vertices());
 
     // iterate over all vertices
@@ -727,8 +763,8 @@ basis_fun_trans_map surface_evaluator::setup_basis_funs() {
         handles[vh].reserve(mesh.get_valence(vh));
 	// iterate on outgoing halfedges
         for (const auto& eh: mesh.get_half_edges_of_vertex(vh, edge_direction::outgoing)) {
-            // if this is on a border, it as on the border
-	    if (!mesh.get_face_of_half_edge(eh)) {
+            // if this is on a border, the values here are not important, and are just placeholders
+	    if (mesh.is_border(eh)) {
 	        handles[vh].emplace_back(eh, tag::border);
 		vec2 c(0, 0);
 		transforms[vh].emplace_back(1, 0, c);
@@ -745,13 +781,11 @@ basis_fun_trans_map surface_evaluator::setup_basis_funs() {
 	    // look at the opposite halfedge
             auto twin = mesh.get_twin(eh);
 	    // if on a border, no additional work needs to be performed (no T-junctions on borders)
-	    if (!mesh.get_face_of_half_edge(twin)) {
+	    if (mesh.is_border(twin)) {
 	        continue;
 	    }
-	    // TODO -- determine why this is necessary
 	    // if it does not point into a corner, mark the next as negative v
-	    // THIS IMPLICITLY ASSUMES AT MOST ONE T-JUNCTION PER FACE; THIS MAY NEED MODIFICATION 
-            // Correction: This assumes that T-junctions extensions are described by the negative_v tag
+            // This assumes that T-junctions extensions are described by the negative_v tag
 	    else if (!expect(mesh.corner(twin), "Corners are to be defined on valid faces")) {
                 auto next_of_twin = mesh.get_next(twin);
                 handles[vh].emplace_back(next_of_twin, tag::negative_v);
@@ -959,9 +993,12 @@ void surface_evaluator::calc_support(const basis_fun_trans_map& transforms) {
                     support.insert(cface_h, vector<tuple<vertex_handle, index, transform>>());
                 }
 
+		// the domain is degenerate; do not add any vertex information to the support
+		if (expect(mesh.facial_parametric_domain_is_degenerate(cface_h), "knot values should be available for all faces in the t-mesh")) {
+		}
                 // Only add the vertex, if it hasn't been added before
 		// this is useful, for example, in the presence of T-junctions
-                if (!added[cface_h][vh]) {
+		else if (!added[cface_h][vh]) {
                     support[cface_h].emplace_back(vh, handle_index, ct);
                     added[cface_h][vh] = true;
                 }

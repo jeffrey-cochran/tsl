@@ -185,6 +185,11 @@ public:
     optional<double> get_knot_interval(half_edge_handle handle) const;
 
     /**
+     * @brief true if the facial parametric domain is degenerate (has a side that is comprised entirely of zero intervals)
+     */
+    optional<bool> facial_parametric_domain_is_degenerate(face_handle handle) const;
+
+    /**
      * @brief Returns true, if the given half edge points into a face corner, false otherwise.
      */
     optional<bool> corner(half_edge_handle handle) const;
@@ -197,6 +202,22 @@ public:
     /**
      * @brief Returns the knot interval from the requested half edge divided by the knot interval from the twin of
      *        the requested half edge.
+     *
+     * Given a knot interval on the face of the input half-edge, we want to extend the parametric domain in a consistent
+     * manner to the domain of its neighboring half-edge
+     *
+     * x------------x-----------x
+     * |            |           |
+     * |          ^ | |         |
+     * |          | | |         |
+     * |        1 | | | 2       |
+     * |          | | |         |
+     * |      1   | | v   3     |
+     * |  ------->  |  -------> |
+     * x------------x-----------x
+     *
+     * Continuing the parametric domain from the left face to the right face,
+     * the knot interval of the right face in the domain of left looks like 1.5
      */
     optional<double> get_knot_factor(half_edge_handle handle) const;
 

@@ -5,7 +5,7 @@ namespace tsl {
 transform transform::apply(const transform& trans) const {
     auto scale = f * trans.f;
     auto rotate = static_cast<uint8_t>((r + trans.r) % 4);
-    auto translate = apply(trans.t);
+    auto translate = apply(trans.t); // note this scales and translates both
     return transform(scale, rotate, translate);
 }
 

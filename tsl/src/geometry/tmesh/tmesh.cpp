@@ -690,6 +690,55 @@ optional<double> tmesh::get_knot_interval(half_edge_handle handle) const {
     return get_e(handle).knot;
 }
 
+optional<bool> tmesh::facial_parametric_domain_is_degenerate(face_handle handle) const {
+    bool found_corner = false;
+    bool one_parametric_dimension = false;
+    int corner_count = 0;
+    for (auto const& heh: get_half_edges_of_face(handle)) {
+        // iterate to a corner of the face
+	if (!found_corner) {
+	    auto temp = from_corner(heh);
+	    if (temp) {
+	        found_corner = *temp;
+	    } else {
+	        // no corners are found
+		return nullopt;
+	    }
+	    continue;
+	}
+	else {
+	    auto knot_interval = get_knot_interval(heh);
+	    //knot interval is defined
+	    if (knot_interval) {
+		// knot interval is greater than zer0
+		if (*knot_interval > 0) {
+		    // non-zero intervals in two parametric dimensions
+		    if (one_parametric_dimension && corner_count > 0) {
+		        return false;
+		    } else {
+			// non-zero interval in one parametric dimension
+		        one_parametric_dimension = true;
+		    }
+		}
+		// if we reach a corner, iterate
+		if (expect(corner(heh), "Cannot have corners only defined in part of the facial domain")) {
+		    ++corner_count;
+		    if (corner_count == 2) {
+		        return true;
+		    }
+		}
+	    }
+	    // knot intervals are not defined
+	    else {
+	        return nullopt;
+	    }
+	}
+    }
+
+    // default (which should never be hit
+    panic("Should not ever reach this; knot intervals and corners are ill-defined on the mesh");
+}
+
 optional<bool> tmesh::corner(half_edge_handle handle) const {
     return get_e(handle).corner;
 }
