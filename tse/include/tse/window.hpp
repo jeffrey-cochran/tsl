@@ -164,6 +164,10 @@ private:
     gl_buffer control_edges_buffer;
     /// Buffer for the vertices in the control polygon.
     gl_buffer control_vertices_buffer;
+    // Buffer for the virtual edges (the ones that exist on the extended (Bezier) mesh)
+    gl_buffer virtual_edges_buffer;
+    // Buffer for the virtual vertices (ones that exist on the extended (Bezier) mesh)
+    gl_buffer virtual_vertices_buffer;
 
     /// Pointer to glfw window. If this points to nullptr, the window was moved.
     glfw_window_ptr glfw_window;
@@ -250,6 +254,11 @@ private:
      * @brief Updates the control polygon buffers.
      */
     void update_control_buffer();
+
+    /**
+     * @brief Updates the virtual polygon buffer (for Bezier mesh)
+     */
+    void update_virtual_buffer();
 
     /**
      * @brief Updates the picking buffer.

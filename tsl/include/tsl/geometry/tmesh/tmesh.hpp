@@ -136,6 +136,16 @@ public:
     size_t num_vertices() const;
 
     /**
+     * @brief Returns the number of control vertices of the mesh (not virtual ones from Bezier mesh)
+     */
+    size_t num_control_vertices() const;
+
+    /**
+     * @brief Returns the number of virtual vertices of the mesh (not in the control mesh)
+     */
+    size_t num_virtual_vertices() const;
+
+    /**
      * @brief Returns the number of faces in the mesh.
      */
     size_t num_faces() const;
@@ -146,9 +156,29 @@ public:
     size_t num_edges() const;
 
     /**
+     * @brief Returns the number of control edges (not half-edges!) in the mesh.
+     */
+    size_t num_control_edges() const;
+
+    /**
+     * @brief Returns the number of virtual edges (not half-edges!) in the mesh.
+     */
+    size_t num_virtual_edges() const;
+
+    /**
      * @brief Returns the number of half edges in the mesh.
      */
     size_t num_half_edges() const;
+
+    /**
+     * @brief Returns the number of control half edges in the mesh.
+     */
+    size_t num_control_half_edges() const;
+
+    /**
+     * @brief Returns the number of virtual half edges in the mesh.
+     */
+    size_t num_virtual_half_edges() const;
 
     /**
      * @brief Returns the number of adjacent faces to the given edge.
@@ -355,6 +385,14 @@ public:
      */
     bool is_border_vertex(vertex_handle vh) const;
 
+    /**
+     * @brief true if the vertex is a control vertex, false if it is virtual
+     *
+     * Determine if the vertex belongs to the control mesh (true) or if it is just
+     * a byproduct of the Bezier mesh (false)
+     */
+    bool is_control_vertex(vertex_handle vh) const;
+
     // ========================================================================
     // = Get faces
     // ========================================================================
@@ -446,6 +484,16 @@ public:
      bool is_border(half_edge_handle handle) const;
 
     /**
+     * @brief Returns true if this half edge belongs to the control mesh, false otherwise
+     */
+     bool is_control_half_edge(half_edge_handle handle) const;
+
+    /**
+     * @brief Returns tru if this edge belongs to the control mesh, false otherwise
+     */
+     bool is_control_edge(edge_handle handle) const;
+
+    /**
      * @brief Get a list of edges around the given vertex.
      *
      * The edge handles are written into the `edges_out` vector. This is done
@@ -513,6 +561,11 @@ public:
     vector<half_edge_handle> get_half_edges_of_face(face_handle face_handle) const;
 
     /**
+     * @brief Get a half edge of the given edge
+     */
+    half_edge_handle get_half_edge_of_edge(edge_handle edge_h) const;
+
+    /**
      * @brief Get the two half edges of an edge.
      */
     array<half_edge_handle, 2> get_half_edges_of_edge(edge_handle edge_h) const;
@@ -577,6 +630,10 @@ public:
 
 private:
     bool is_bezier_mesh = false;
+    
+    int count_virtual_vertices = 0;
+    int count_virtual_half_edges = 0;
+
     stable_vector<half_edge_handle, half_edge> edges;
     stable_vector<face_handle, face> faces;
     stable_vector<vertex_handle, vertex> vertices;

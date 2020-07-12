@@ -108,6 +108,30 @@ vector<uint8_t> get_picked_vertices_buffer(const tmesh& mesh, const set<picking_
 
 gl_buffer get_edges_buffer(const tmesh& mesh, picking_map& picking_map) {
     gl_buffer out;
+    out.vertex_buffer.reserve(mesh.num_control_edges() * 2);
+    out.index_buffer.reserve(mesh.num_control_edges() * 2);
+    out.picking_buffer = vector<uint32_t>();
+    auto& picking_buffer = *out.picking_buffer;
+    picking_buffer.reserve(mesh.num_control_edges() * 2);
+
+    uint32_t current_index = 0;
+    for (const auto& eh: mesh.get_edges()) {
+	if (mesh.is_control_edge(eh)) {
+            auto picking_id = picking_map.add_object(object_type::edge, eh);
+            auto vertices = mesh.get_vertices_of_edge(eh);
+            for (const auto& vh: vertices) {
+                out.vertex_buffer.emplace_back(mesh.get_vertex_position(vh));
+                picking_buffer.push_back(picking_id);
+                out.index_buffer.push_back(current_index++);
+            }
+	}
+    }
+
+    return out;
+}
+
+gl_buffer get_virtual_edges_buffer(const tmesh& mesh, picking_map& picking_map) {
+    gl_buffer out;
     out.vertex_buffer.reserve(mesh.num_edges() * 2);
     out.index_buffer.reserve(mesh.num_edges() * 2);
     out.picking_buffer = vector<uint32_t>();
@@ -116,13 +140,15 @@ gl_buffer get_edges_buffer(const tmesh& mesh, picking_map& picking_map) {
 
     uint32_t current_index = 0;
     for (const auto& eh: mesh.get_edges()) {
-        auto picking_id = picking_map.add_object(object_type::edge, eh);
-        auto vertices = mesh.get_vertices_of_edge(eh);
-        for (const auto& vh: vertices) {
-            out.vertex_buffer.emplace_back(mesh.get_vertex_position(vh));
-            picking_buffer.push_back(picking_id);
-            out.index_buffer.push_back(current_index++);
-        }
+	if (!mesh.is_control_edge(eh)) {
+            auto picking_id = picking_map.add_object(object_type::edge, eh);
+            auto vertices = mesh.get_vertices_of_edge(eh);
+            for (const auto& vh: vertices) {
+                out.vertex_buffer.emplace_back(mesh.get_vertex_position(vh));
+                picking_buffer.push_back(picking_id);
+                out.index_buffer.push_back(current_index++);
+            }
+	}
     }
 
     return out;
@@ -130,18 +156,41 @@ gl_buffer get_edges_buffer(const tmesh& mesh, picking_map& picking_map) {
 
 gl_buffer get_vertices_buffer(const tmesh& mesh, picking_map& picking_map) {
     gl_buffer out;
-    out.vertex_buffer.reserve(mesh.num_vertices());
-    out.index_buffer.reserve(mesh.num_vertices());
+    out.vertex_buffer.reserve(mesh.num_control_vertices());
+    out.index_buffer.reserve(mesh.num_control_vertices());
     out.picking_buffer = vector<uint32_t>();
     auto& picking_buffer = *out.picking_buffer;
-    picking_buffer.reserve(mesh.num_vertices());
+    picking_buffer.reserve(mesh.num_control_vertices());
 
     uint32_t current_index = 0;
     for (const auto& vh: mesh.get_vertices()) {
-        out.vertex_buffer.emplace_back(mesh.get_vertex_position(vh));
-        out.index_buffer.push_back(current_index++);
-        auto picking_id = picking_map.add_object(object_type::vertex, vh);
-        picking_buffer.push_back(picking_id);
+	if (mesh.is_control_vertex(vh)) {
+            out.vertex_buffer.emplace_back(mesh.get_vertex_position(vh));
+            out.index_buffer.push_back(current_index++);
+            auto picking_id = picking_map.add_object(object_type::vertex, vh);
+            picking_buffer.push_back(picking_id);
+	}
+    }
+
+    return out;
+}
+
+gl_buffer get_virtual_vertices_buffer(const tmesh& mesh, picking_map& picking_map) {
+    gl_buffer out;
+    out.vertex_buffer.reserve(mesh.num_virtual_vertices());
+    out.index_buffer.reserve(mesh.num_virtual_vertices());
+    out.picking_buffer = vector<uint32_t>();
+    auto& picking_buffer = *out.picking_buffer;
+    picking_buffer.reserve(mesh.num_control_vertices());
+
+    uint32_t current_index = 0;
+    for (const auto& vh: mesh.get_vertices()) {
+        if (!mesh.is_control_vertex(vh)) {
+	    out.vertex_buffer.emplace_back(mesh.get_vertex_position(vh));
+	    out.index_buffer.push_back(current_index++);
+	    auto picking_id = picking_map.add_object(object_type::vertex, vh);
+	    picking_buffer.push_back(picking_id);
+	}
     }
 
     return out;

@@ -637,6 +637,16 @@ size_t tmesh::num_vertices() const
     return vertices.num_used();
 }
 
+size_t tmesh::num_control_vertices() const
+{
+    return num_vertices() - num_virtual_vertices();
+}
+
+size_t tmesh::num_virtual_vertices() const
+{
+    return count_virtual_vertices;
+}
+
 size_t tmesh::num_faces() const
 {
     return faces.num_used();
@@ -647,9 +657,29 @@ size_t tmesh::num_edges() const
     return edges.num_used() / 2;
 }
 
+size_t tmesh::num_control_edges() const
+{
+    return num_edges() - num_virtual_edges();
+}
+
+size_t tmesh::num_virtual_edges() const
+{
+    return count_virtual_half_edges / 2;
+}
+
 size_t tmesh::num_half_edges() const
 {
     return edges.num_used();
+}
+
+size_t tmesh::num_control_half_edges() const
+{
+    return num_half_edges() - num_virtual_half_edges();
+}
+
+size_t tmesh::num_virtual_half_edges() const
+{
+    return count_virtual_half_edges;
 }
 
 uint8_t tmesh::num_adjacent_faces(edge_handle handle) const
@@ -876,6 +906,11 @@ bool tmesh::is_border_vertex(vertex_handle vh) const {
     return false;
 }
 
+bool tmesh::is_control_vertex(vertex_handle vh) const {
+    const auto& v = get_v(vh);
+    return v.control_mesh_vertex;
+}
+
 // ========================================================================
 // = Get faces
 // ========================================================================
@@ -969,6 +1004,16 @@ bool tmesh::is_border(half_edge_handle handle) const {
     return !he.face;
 }
 
+bool tmesh::is_control_half_edge(half_edge_handle handle) const {
+    const auto& he = get_e(handle);
+    return he.control_mesh_half_edge;
+}
+
+bool tmesh::is_control_edge(edge_handle handle) const {
+    auto heh = half_edge_handle::one_half_of(handle);
+    return is_control_half_edge(heh);
+}
+
 void tmesh::get_edges_of_vertex(
     vertex_handle handle,
     vector<edge_handle>& edges_out
@@ -1018,6 +1063,11 @@ vector<half_edge_handle> tmesh::get_half_edges_of_face(face_handle face_handle) 
         return true;
     });
     return edges_out;
+}
+
+half_edge_handle tmesh::get_half_edge_of_edge(edge_handle edge_h) const
+{
+    return half_edge_handle::one_half_of(edge_h);
 }
 
 array<half_edge_handle, 2> tmesh::get_half_edges_of_edge(edge_handle edge_h) const

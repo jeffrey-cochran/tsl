@@ -698,8 +698,13 @@ void window::draw_gui() {
                     ImGui::BulletText("prev: %u", mesh.get_prev(eh).get_idx());
                     ImGui::BulletText("twin: %u", mesh.get_twin(eh).get_idx());
                     ImGui::BulletText("target: %u", mesh.get_target(eh).get_idx());
-                    ImGui::BulletText("face: %u", mesh.get_face_of_half_edge(eh).unwrap().get_idx());
-                    ImGui::TreePop();
+                    if (mesh.is_border(eh)) {
+		        ImGui::BulletText("face: null");
+		    }
+		    else {
+			ImGui::BulletText("face: %u", mesh.get_face_of_half_edge(eh).unwrap().get_idx());
+		    }
+		    ImGui::TreePop();
                 }
 
                 if (ImGui::TreeNode("t-mesh data")) {
@@ -807,7 +812,8 @@ void window::draw_gui() {
                         break;
                     }
                     default:
-                        panic("unknown object type picked!");
+                        break;
+			//panic("unknown object type picked!");
                 }
             }
 
@@ -1126,6 +1132,10 @@ void window::update_control_buffer() {
     glEnableVertexAttribArray(control_vertrex_picking_vpicking_id_location);
 }
 
+void window::update_virtual_buffer()
+{
+}
+
 void window::update_picked_buffer()
 {
     // Edges
@@ -1171,6 +1181,7 @@ void window::update_buffer()
     picking_map.clear();
     update_surface_buffer();
     update_control_buffer();
+    update_virtual_buffer();
     update_picked_buffer();
 }
 
