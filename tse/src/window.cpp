@@ -76,6 +76,7 @@ window::window(string&& title, uint32_t width, uint32_t height) :
     height(height),
     wireframe_mode(false),
     control_mode(true),
+    virtual_mode(false),
     surface_mode(true),
     normal_mode(false),
     show_reflection_lines(false),
@@ -184,6 +185,10 @@ window::window(string&& title, uint32_t width, uint32_t height) :
     vertex_program = create_program({vertex_shader, fragment_shader, vertex_geometry_shader});
     edge_picking_program = create_program({vertex_picking_shader, fragment_picking_shader, edge_geometry_shader});
     vertex_picking_program = create_program({vertex_picking_shader, fragment_picking_shader, vertex_geometry_shader});
+    
+    virtual_edge_program = create_program({vertex_shader, fragment_shader, edge_geometry_shader});
+    virtual_vertex_program = create_program({vertex_shader, fragment_shader, vertex_geometry_shader});
+    
     phong_program = create_program({phong_vertex_shader, phong_fragment_shader});
     surface_picking_program = create_program({vertex_wogeom_picking_shader, fragment_picking_shader});
     normal_program = create_program({normal_vertex_shader, normal_geometry_shader, normal_fragment_shader});
@@ -205,18 +210,35 @@ window::window(string&& title, uint32_t width, uint32_t height) :
     glGenBuffers(1, &surface_index_buffer);
     glGenBuffers(1, &surface_picked_buffer);
 
+    // control edge data
     glGenVertexArrays(1, &control_edges_vertex_array);
     glGenVertexArrays(1, &control_picking_edges_vertex_array);
     glGenBuffers(1, &control_edges_vertex_buffer);
     glGenBuffers(1, &control_edges_index_buffer);
     glGenBuffers(1, &edges_picked_buffer);
 
+    // virtual edges data
+    glGenVertexArrays(1, &virtual_edges_vertex_array);
+    glGenVertexArrays(1, &virtual_picking_edges_vertex_array);
+    glGenBuffers(1, &virtual_edges_vertex_buffer);
+    glGenBuffers(1, &virtual_edges_index_buffer);
+    glGenBuffers(1, &virtual_edges_picked_buffer);
+
+    // control vertex data
     glGenVertexArrays(1, &control_vertices_vertex_array);
     glGenVertexArrays(1, &control_picking_vertices_vertex_array);
     glGenBuffers(1, &control_vertices_vertex_buffer);
     glGenBuffers(1, &control_vertices_index_buffer);
     glGenBuffers(1, &vertices_picked_buffer);
 
+    // virtual vertex data
+    glGenVertexArrays(1, &virtual_vertices_vertex_array);
+    glGenVertexArrays(1, &virtual_picking_vertices_vertex_array);
+    glGenBuffers(1, &virtual_vertices_vertex_buffer);
+    glGenBuffers(1, &virtual_vertices_index_buffer);
+    glGenBuffers(1, &virtual_vertices_picked_buffer);
+    
+    // update buffers with information from the surface
     update_buffer();
 
     glEnable(GL_DEPTH_TEST);
@@ -439,6 +461,9 @@ void window::render() {
     if (control_mode) {
         draw_control_polygon(model, vp);
     }
+    if (control_mode && virtual_mode) {
+        draw_virtual_polygon(model, vp);
+    }
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -564,11 +589,12 @@ void window::draw_gui() {
 
     if (dialogs.settings) {
         ImGui::SetNextWindowPos(ImVec2(0, 30), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSizeConstraints(ImVec2(500, 0), ImVec2(width, height));
+        ImGui::SetNextWindowSizeConstraints(ImVec2(550, 0), ImVec2(width, height));
 
         if (ImGui::Begin("Settings", &dialogs.settings)) {
             ImGui::Checkbox("Wireframe mode", &wireframe_mode);
             ImGui::Checkbox("Show control polygon", &control_mode);
+	    ImGui::Checkbox("Show Bezier mesh", &virtual_mode);
             ImGui::Checkbox("Show surface", &surface_mode);
             ImGui::Checkbox("Show surface normals", &normal_mode);
             ImGui::Checkbox("Show reflection lines", &show_reflection_lines);
@@ -909,6 +935,48 @@ void window::draw_control_polygon(const mat4& model, const mat4& vp) const {
     glDrawElements(GL_POINTS, static_cast<GLsizei>(control_vertices_buffer.index_buffer.size()), GL_UNSIGNED_INT, (void*) (sizeof(float) * 0));
 }
 
+void window::draw_virtual_polygon(const mat4& model, const mat4& vp) const {
+    // Render control polygon
+    glDepthMask(GL_FALSE);
+    glUseProgram(virtual_edge_program);
+
+    auto vp_location = glGetUniformLocation(virtual_edge_program, "VP");
+    auto m_location = glGetUniformLocation(virtual_edge_program, "M");
+    auto color_location = glGetUniformLocation(virtual_edge_program, "color_in");
+    auto camera_location = glGetUniformLocation(virtual_edge_program, "camera_pos");
+
+    glUniformMatrix4fv(vp_location, 1, GL_FALSE, value_ptr(vp));
+    glUniformMatrix4fv(m_location, 1, GL_FALSE, value_ptr(model));
+    // edge colors
+    glUniform3fv(color_location, 1, value_ptr(fvec3(1, 1, 0)));
+    glUniform3fv(camera_location, 1, value_ptr(camera.get_pos()));
+
+    glBindVertexArray(control_edges_vertex_array);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDrawElements(GL_LINES, static_cast<GLsizei>(virtual_edges_buffer.index_buffer.size()), GL_UNSIGNED_INT, (void*) (sizeof(float) * 0));
+    glDepthMask(GL_TRUE);
+
+    // Render vertices
+    glUseProgram(virtual_vertex_program);
+
+    auto vertex_vp_location = glGetUniformLocation(virtual_vertex_program, "VP");
+    auto vertex_m_location = glGetUniformLocation(virtual_vertex_program, "M");
+    auto vertex_color_location = glGetUniformLocation(virtual_vertex_program, "color_in");
+    auto vertex_camera_location = glGetUniformLocation(virtual_vertex_program, "camera_pos");
+    auto vertex_camera_up_location = glGetUniformLocation(virtual_vertex_program, "camera_up");
+
+    glUniformMatrix4fv(vertex_vp_location, 1, GL_FALSE, value_ptr(vp));
+    glUniformMatrix4fv(vertex_m_location, 1, GL_FALSE, value_ptr(model));
+    // vertex colors
+    glUniform3fv(vertex_color_location, 1, value_ptr(fvec3(0, 1, 1)));
+    glUniform3fv(vertex_camera_location, 1, value_ptr(camera.get_pos()));
+    glUniform3fv(vertex_camera_up_location, 1, value_ptr(camera.get_up()));
+
+    glBindVertexArray(virtual_vertices_vertex_array);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDrawElements(GL_POINTS, static_cast<GLsizei>(virtual_vertices_buffer.index_buffer.size()), GL_UNSIGNED_INT, (void*) (sizeof(float) * 0));
+}
+
 void window::draw_surface(const mat4& model, const mat4& vp) const {
     glUseProgram(phong_program);
 
@@ -997,6 +1065,10 @@ window::~window() {
         glDeleteVertexArrays(1, &control_vertices_vertex_array);
         glDeleteVertexArrays(1, &control_picking_edges_vertex_array);
         glDeleteVertexArrays(1, &control_picking_vertices_vertex_array);
+        glDeleteVertexArrays(1, &virtual_edges_vertex_array);
+	glDeleteVertexArrays(1, &virtual_vertices_vertex_array);
+	glDeleteVertexArrays(1, &virtual_picking_edges_vertex_array);
+	glDeleteVertexArrays(1, &virtual_picking_vertices_vertex_array);
         glDeleteVertexArrays(1, &surface_picking_vertex_array);
         glDeleteVertexArrays(1, &surface_normal_vertex_array);
 
@@ -1004,9 +1076,15 @@ window::~window() {
         glDeleteBuffers(1, &control_edges_index_buffer);
         glDeleteBuffers(1, &control_vertices_vertex_buffer);
         glDeleteBuffers(1, &control_vertices_index_buffer);
+        glDeleteBuffers(1, &virtual_edges_vertex_buffer);
+        glDeleteBuffers(1, &virtual_edges_index_buffer);
+        glDeleteBuffers(1, &virtual_vertices_vertex_buffer);
+        glDeleteBuffers(1, &virtual_vertices_index_buffer);
         glDeleteBuffers(1, &surface_picked_buffer);
         glDeleteBuffers(1, &edges_picked_buffer);
         glDeleteBuffers(1, &vertices_picked_buffer);
+        glDeleteBuffers(1, &virtual_edges_picked_buffer);
+        glDeleteBuffers(1, &virtual_vertices_picked_buffer);
 
         glDeleteFramebuffers(1, &picking_frame);
         glDeleteRenderbuffers(1, &picking_render);
@@ -1134,6 +1212,61 @@ void window::update_control_buffer() {
 
 void window::update_virtual_buffer()
 {
+    // TODO -- Needs to be tested
+    virtual_edges_buffer = get_virtual_edges_buffer(evaluator.get_tmesh(), picking_map);
+    virtual_vertices_buffer = get_virtual_vertices_buffer(evaluator.get_tmesh(), picking_map);
+
+    // control edges polygon
+    glBindVertexArray(virtual_edges_vertex_array);
+
+    auto combined_virtual_edges_data = virtual_edges_buffer.get_combined_vec_data();
+    glBindBuffer(GL_ARRAY_BUFFER, virtual_edges_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, combined_virtual_edges_data.size() * sizeof(vertex_element), combined_virtual_edges_data.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, virtual_edges_index_buffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, virtual_edges_buffer.index_buffer.size() * sizeof(GLuint), virtual_edges_buffer.index_buffer.data(), GL_STATIC_DRAW);
+
+    // pointer binding
+    auto virtual_vpos_location = static_cast<GLuint>(glGetAttribLocation(virtual_edge_program, "pos"));
+    glVertexAttribPointer(virtual_vpos_location, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_element), (void*) offsetof(vertex_element, pos));
+    glEnableVertexAttribArray(virtual_vpos_location);
+
+    glBindVertexArray(virtual_picking_edges_vertex_array);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, virtual_edges_index_buffer);
+
+    auto virtual_picking_vpos_location = static_cast<GLuint>(glGetAttribLocation(virtual_edge_picking_program, "pos"));
+    glVertexAttribPointer(virtual_picking_vpos_location, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_element), (void*) offsetof(vertex_element, pos));
+    glEnableVertexAttribArray(virtual_picking_vpos_location);
+
+    auto virtual_picking_vpicking_id_location = static_cast<GLuint>(glGetAttribLocation(virtual_edge_picking_program, "picking_id_in"));
+    glVertexAttribIPointer(virtual_picking_vpicking_id_location, 1, GL_UNSIGNED_INT, sizeof(vertex_element), (void*) offsetof(vertex_element, picking_index));
+    glEnableVertexAttribArray(virtual_picking_vpicking_id_location);
+
+    // control vertices polygon
+    glBindVertexArray(virtual_vertices_vertex_array);
+
+    auto combined_virtual_vertices_data = virtual_vertices_buffer.get_combined_vec_data();
+    glBindBuffer(GL_ARRAY_BUFFER, virtual_vertices_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, combined_virtual_vertices_data.size() * sizeof(vertex_element), combined_virtual_vertices_data.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, virtual_vertices_index_buffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, virtual_vertices_buffer.index_buffer.size() * sizeof(GLuint), virtual_vertices_buffer.index_buffer.data(), GL_STATIC_DRAW);
+
+    // pointer binding
+    auto virtual_vertex_vpos_location = static_cast<GLuint>(glGetAttribLocation(virtual_vertex_program, "pos"));
+    glVertexAttribPointer(virtual_vertex_vpos_location, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_element), (void*) offsetof(vertex_element, pos));
+    glEnableVertexAttribArray(virtual_vertex_vpos_location);
+
+    glBindVertexArray(virtual_picking_vertices_vertex_array);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, virtual_vertices_index_buffer);
+
+    auto virtual_vertex_picking_vpos_location = static_cast<GLuint>(glGetAttribLocation(virtual_vertex_picking_program, "pos"));
+    glVertexAttribPointer(virtual_vertex_picking_vpos_location, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_element), (void*) offsetof(vertex_element, pos));
+    glEnableVertexAttribArray(virtual_vertex_picking_vpos_location);
+
+    auto virtual_vertex_picking_vpicking_id_location = static_cast<GLuint>(glGetAttribLocation(virtual_vertex_picking_program, "picking_id_in"));
+    glVertexAttribIPointer(virtual_vertex_picking_vpicking_id_location, 1, GL_UNSIGNED_INT, sizeof(vertex_element), (void*) offsetof(vertex_element, picking_index));
+    glEnableVertexAttribArray(virtual_vertex_picking_vpicking_id_location);
 }
 
 void window::update_picked_buffer()

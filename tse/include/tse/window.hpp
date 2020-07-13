@@ -145,6 +145,8 @@ private:
     bool wireframe_mode;
     /// True, if the control polygon of the surface should be shown, false otherwise.
     bool control_mode;
+    /// True, if the Bezier mesh of the surface should be shown, false otherwise.
+    bool virtual_mode;
     /// True, if the surface should be shown, false otherwise.
     bool surface_mode;
     /// True, if the normals of the surface should be shown, false otherwise.
@@ -177,11 +179,16 @@ private:
     class picking_map picking_map;
     GLuint vertex_picking_program;
     GLuint edge_picking_program;
+    GLuint virtual_vertex_picking_program;
+    GLuint virtual_edge_picking_program;
     GLuint surface_picking_program;
 
     GLuint control_picking_edges_vertex_array;
     GLuint control_picking_vertices_vertex_array;
     GLuint surface_picking_vertex_array;
+
+    GLuint virtual_picking_edges_vertex_array;
+    GLuint virtual_picking_vertices_vertex_array;
 
     GLuint picking_frame;
     GLuint picking_texture;
@@ -203,12 +210,16 @@ private:
     GLuint edge_program;
     GLuint phong_program;
     GLuint normal_program;
+    GLuint virtual_vertex_program;
+    GLuint virtual_edge_program;
 
     // vao
     GLuint surface_vertex_array;
     GLuint surface_normal_vertex_array;
     GLuint control_edges_vertex_array;
     GLuint control_vertices_vertex_array;
+    GLuint virtual_edges_vertex_array;
+    GLuint virtual_vertices_vertex_array;
 
     // vbo
     GLuint surface_picked_buffer;
@@ -220,6 +231,13 @@ private:
     GLuint control_edges_index_buffer;
     GLuint control_vertices_vertex_buffer;
     GLuint control_vertices_index_buffer;
+    
+    GLuint virtual_edges_picked_buffer;
+    GLuint virtual_vertices_picked_buffer;
+    GLuint virtual_edges_vertex_buffer;
+    GLuint virtual_edges_index_buffer;
+    GLuint virtual_vertices_vertex_buffer;
+    GLuint virtual_vertices_index_buffer;
 
     /// Percentage of edges which should be removed.
     float edge_remove_percentage;
@@ -234,7 +252,6 @@ private:
 
     /// Evaluated grids of the surface.
     vector<regular_grid> tmesh_faces;
-
     /// Camera
     class camera camera;
 
@@ -289,6 +306,11 @@ private:
      * @brief Draws the control polygon.
      */
     void draw_control_polygon(const mat4& model, const mat4& vp) const;
+
+    /**
+     * @brief Draws the Bezier polygon on top of the control polygon
+     */
+    void draw_virtual_polygon(const mat4& model, const mat4& vp) const;
 
     /**
      * @brief Draws the control polygon into the offscreen framebuffer used for picking.

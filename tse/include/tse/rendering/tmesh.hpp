@@ -41,9 +41,19 @@ vector<uint8_t> get_picked_vertices_buffer(const tmesh& mesh, const set<picking_
 gl_buffer get_edges_buffer(const tmesh& mesh, picking_map& picking_map);
 
 /**
+ * @brief Generates an openGL ready buffer for picking virtual edges from the given tmesh and picking map
+ */
+gl_buffer get_virtual_edges_buffer(const tmesh& mesh, picking_map& picking_map);
+
+/**
  * @brief Generates an OpenGL ready buffer for picking vertices from the given tmesh and picking map.
  */
 gl_buffer get_vertices_buffer(const tmesh& mesh, picking_map& picking_map);
+
+/**
+ * @brief Generates an OpenGL ready buffer for picking virtual vertices from the given tmesh and picking map.
+ */
+gl_buffer get_virtual_vertices_buffer(const tmesh& mesh, picking_map& picking_map);
 
 }
 
