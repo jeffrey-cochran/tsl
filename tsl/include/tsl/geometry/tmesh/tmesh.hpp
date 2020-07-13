@@ -8,6 +8,7 @@
 #include <optional>
 
 #include "tsl/attrmaps/stable_vector.hpp"
+#include "tsl/attrmaps/attr_maps.hpp"
 #include "tsl/geometry/vector.hpp"
 #include "handles.hpp"
 #include "edge_direction.hpp"
@@ -144,6 +145,11 @@ public:
      * @brief Returns the number of virtual vertices of the mesh (not in the control mesh)
      */
     size_t num_virtual_vertices() const;
+
+    /**
+     * @brief Returns the number of T-junctions
+     */
+    size_t num_t_junctions() const;
 
     /**
      * @brief Returns the number of faces in the mesh.
@@ -489,9 +495,17 @@ public:
      bool is_control_half_edge(half_edge_handle handle) const;
 
     /**
-     * @brief Returns tru if this edge belongs to the control mesh, false otherwise
+     * @brief Returns true if this edge belongs to the control mesh, false otherwise
      */
      bool is_control_edge(edge_handle handle) const;
+
+    /**
+     * @brief Returns the edge corresponding to this halfedge
+     */
+     edge_handle half_edge_to_edge(half_edge_handle handle) const 
+     { 
+	 return half_to_full_edge_handle(handle);
+     }
 
     /**
      * @brief Get a list of edges around the given vertex.
@@ -652,6 +666,13 @@ private:
      * @brief makes the half-edge and its twin have zero knot interval
      */
     void edge_to_zero_knot_interval(half_edge_handle handle);
+
+    /**
+     * @brief Get edge extension information for T-junctions
+     */
+    void get_edge_extension_data(
+	    sparse_half_edge_map<std::vector<edge_handle>>& half_edge_to_opp_edge,
+	    sparse_half_edge_map<vertex_handle>& t_junction_to_vertex);
 
     /**
      * @brief Attempts to find an edge between the given vertices and, if none

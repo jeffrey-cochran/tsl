@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <tuple>
+#include <math.h>
 
 #include "tsl/geometry/rectangle.hpp"
 #include "tsl/attrmaps/attr_maps.hpp"
