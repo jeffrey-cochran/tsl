@@ -264,6 +264,16 @@ public:
      */
     optional<double> get_knot_factor(half_edge_handle handle) const;
 
+
+    // ========================================================================
+    // = Set attributes
+    // ========================================================================
+
+    /**
+     * @brief allows manual setting of knot intervals; DO NOT USE UNLESS YOU KNOW WHAT YOU ARE DOING
+     */
+    bool set_knot_interval(half_edge_handle handle, double interval);
+
     // ========================================================================
     // = Follow pointer
     // ========================================================================
@@ -683,6 +693,14 @@ private:
     half_edge_handle find_or_create_edge_between(new_face_vertex from_h, new_face_vertex to_h);
 
     /**
+     * @brief Attempts to find an edge between the given vertices and, if none 
+     *        is found, creates a new edge with `add_edge_pair()`
+     *
+     * @return The half edge from `from_h` to `to_h`
+     */
+    half_edge_handle find_or_create_edge_between(vertex_handle from_h, vertex_handle to_h);
+
+    /**
      * @brief Adds a new, incomplete edge-pair.
      *
      * This method is private and unsafe, because it leaves some fields
@@ -703,6 +721,16 @@ private:
      * @return The handle with the smaller index of the given half edge and its twin.
      */
     edge_handle half_to_full_edge_handle(half_edge_handle handle) const;
+
+    /**
+     * @brief Splits an edge at the specified interval into two edges and a new vertex
+     *
+     * Split the half-edge at the specified barycentric interval location.
+     * Note that 0 of the barycentric location means that there is a zero-interval
+     *      next to the half-edge's from vertex, while 1 barycentric location means
+     *      that there is a zero-interval next to the half-edges target vertex
+     */
+    vertex_handle split_edge_at_interval(half_edge_handle handle, double barycentric_interval, bool is_control_mesh_vertex);
 
     /**
      * @brief Circulates around the vertex `vh`, calling the `visitor` for each

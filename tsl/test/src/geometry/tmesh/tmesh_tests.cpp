@@ -642,4 +642,15 @@ TEST_F(TmeshTestWithTfaceTest, GetExtendedValence) {
     EXPECT_EQ(4, mesh.get_extended_valence(vertex_handles[4]));
 }
 
+TEST_F(TmeshTestSplittingOperations, TestSetup) {
+    EXPECT_EQ(2, mesh.num_faces());
+    EXPECT_EQ(6, mesh.num_vertices());
+    EXPECT_EQ(14, mesh.num_half_edges());
+
+    // find the half-edge between vertex handles 3 and 2
+    auto heh = mesh.get_half_edge_between(vertex_handles[3], vertex_handles[2]).unwrap();
+    EXPECT_TRUE(mesh.get_face_of_half_edge(heh));
+    EXPECT_EQ(face_handles[1], mesh.get_face_of_half_edge(heh).unwrap());
+}
+
 }

@@ -641,7 +641,8 @@ void tmesh::extend_to_bezier_mesh()
         get_edge_extension_data(half_edge_to_opp_edge, t_junc_to_vertex);
 
         // Step 2:
-	//
+	// iteratively split edge information
+	
     }
 }
 
@@ -838,6 +839,22 @@ optional<double> tmesh::get_knot_factor(half_edge_handle handle) const {
         }
     }
     return nullopt;
+}
+
+// ========================================================================
+// = Set attributes
+// ========================================================================
+bool tmesh::set_knot_interval(half_edge_handle handle, double interval) {
+    // do not allow input of intervals on regions in which they are not
+    // already defined
+    if (!get_knot_interval(handle)) {
+        return false;
+    } else
+    {
+        auto& he = get_e(handle);
+	he.knot = interval;
+	return true;
+    }
 }
 
 // ========================================================================
@@ -1366,11 +1383,15 @@ void tmesh::get_edge_extension_data(
 }
 
 half_edge_handle tmesh::find_or_create_edge_between(new_face_vertex from_h, new_face_vertex to_h) {
-    auto found_edge = get_half_edge_between(from_h.handle, to_h.handle);
+    return find_or_create_edge_between(from_h.handle, to_h.handle);
+}
+
+half_edge_handle tmesh::find_or_create_edge_between(vertex_handle from_h, vertex_handle to_h) {
+    auto found_edge = get_half_edge_between(from_h, to_h);
     if (found_edge) {
         return found_edge.unwrap();
     } else {
-        return add_edge_pair(from_h.handle, to_h.handle).first;
+        return add_edge_pair(from_h, to_h).first;
     }
 }
 
@@ -1403,6 +1424,111 @@ edge_handle tmesh::half_to_full_edge_handle(half_edge_handle handle) const {
     auto twin = get_twin(handle);
     // return the handle with the smaller index of the given half edge and its twin
     return edge_handle(min(twin.get_idx(), handle.get_idx()));
+}
+
+vertex_handle tmesh::split_edge_at_interval(half_edge_handle handle, double barycentric_interval, bool is_control_mesh_vertex) {
+    if (barycentric_interval < 0) {
+        panic("Cannot process negative barycentric interval");
+    } else if (barycentric_interval > 1) {
+        panic("Cannot extrapolate edge interval");
+    }
+
+    expect(get_knot_interval(handle), "Cannot split a half-edge which does not have a knot interval");
+
+    // CREATE NEW VERTEX
+    // find the location of the new vertex location
+    auto to_vh = get_target(handle);
+    auto from_vh = get_target(get_twin(handle));
+
+    vec3 pos;
+    if (barycentric_interval == 0) {
+        pos = (0.75) * get_vertex_position(from_vh) + (0.25) * get_vertex_position(to_vh);
+    } else if (barycentric_interval == 1) {
+        pos = (0.25) * get_vertex_position(from_vh) + (0.75) * get_vertex_position(to_vh);
+    } else {
+        pos = (1-barycentric_interval) * get_vertex_position(from_vh) + barycentric_interval * get_vertex_position(to_vh);
+    }
+    // add the vertex with the location
+    auto split_vh = add_vertex(pos, is_control_mesh_vertex);
+    if (!is_control_mesh_vertex) {
+        ++count_virtual_vertices;
+    }
+
+    // CREATE NEW HALFEDGE DATA
+    auto new_heh = find_or_create_edge_between(split_vh,to_vh);
+    auto init_twin_h = get_twin(handle);
+
+    auto& init_he = get_e(handle);
+    auto& init_opp = get_e(init_twin_h);
+    auto& new_he = get_e(new_heh);
+    auto& new_opp = get_e(get_twin(new_heh));
+
+    // Fix new vertex data
+    auto& split_v = get_v(split_vh);
+    split_v.outgoing = optional_half_edge_handle(new_heh);
+
+    // adjust half-edge data for the new half-edges
+    // face data
+    if (get_face_of_half_edge(handle)) {
+        new_he.face = optional_face_handle(get_face_of_half_edge(handle));
+    }
+    if (get_face_of_half_edge(init_twin_h)) {
+        new_opp.face = optional_face_handle(get_face_of_half_edge(handle));
+    }
+    // target data already complete
+    // next data
+    new_he.next = init_he.next;
+    new_opp.next = init_twin_h;
+    // previous data
+    new_he.prev = handle;
+    new_opp.prev = init_opp.prev;
+    // corner data
+    if (init_he.corner) {
+        new_he.corner = expect(init_he.corner, "error in expect function");
+    }
+    if (init_opp.corner) {
+        new_opp.corner = false;
+    }
+    // knot interval data
+    new_he.knot = (1-barycentric_interval) * expect(init_he.knot, "knot interval should be well-defined");
+    if (init_opp.knot) {
+        new_opp.knot = (1-barycentric_interval) * expect(init_opp.knot, "error in expect function (2)");
+    }
+    new_he.control_mesh_half_edge = init_he.control_mesh_half_edge;
+    if (!new_he.control_mesh_half_edge) {
+        ++count_virtual_half_edges;
+    }
+    new_opp.control_mesh_half_edge = init_opp.control_mesh_half_edge;
+    if (!new_opp.control_mesh_half_edge) {
+        ++count_virtual_half_edges;
+    }
+
+    // adjust half-edge data for the existing edges
+    auto& next_he = get_e(get_next(handle));
+    next_he.prev = new_heh;
+    auto& opp_prev_he = get_e(get_prev(init_twin_h));
+    opp_prev_he.next = get_twin(new_heh);
+
+    // modify outgoing if necessary on existing vertex
+    if (get_out(to_vh)) {
+        if (get_out(to_vh).unwrap() == init_twin_h) {
+	    auto& v = get_v(get_target(handle));
+	    v.outgoing = optional_half_edge_handle(get_twin(new_heh));
+	}
+    }
+
+    // finally, modify the original half-edges
+    init_he.next = new_heh;
+    init_he.target = split_vh;
+    init_he.corner = false;
+    init_he.knot = barycentric_interval * expect(init_he.knot, "knot interval should be well-defined (2)");
+
+    init_opp.prev = get_twin(new_heh);
+    if (init_opp.knot) {
+        init_opp.knot = barycentric_interval * expect(init_opp.knot, "error in expect function (3)");
+    }
+
+    return split_vh;
 }
 
 }

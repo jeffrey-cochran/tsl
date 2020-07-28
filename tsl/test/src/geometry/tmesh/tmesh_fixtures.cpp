@@ -309,4 +309,35 @@ void TmeshTestAsGrid::SetUp() {
     }
 }
 
+void TmeshTestSplittingOperations::SetUp() {
+    // Create the following structure
+    // v4---------v5
+    // |    2      |
+    // |         1 |
+    // | 1         |
+    // |    2      |
+    // v3---------v2
+    // |    1      |
+    // |         1 |
+    // | 1         |
+    // |    1      |
+    // v0---------v1
+    // where numbers are the knot intervals on the faces
+    vertex_handles.push_back(mesh.add_vertex(vec3(0,0,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(3,0,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(3,3,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(0,3,0), true));
+
+    vertex_handles.push_back(mesh.add_vertex(vec3(0,9,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(3,9,0), true));
+
+    face_handles.push_back(mesh.add_face({vertex_handles[0], vertex_handles[1], vertex_handles[2], vertex_handles[3]}));
+    face_handles.push_back(mesh.add_face({vertex_handles[3], vertex_handles[2], vertex_handles[5], vertex_handles[4]}));
+
+    // find the halfedge handle from vertex 3 to vertex 2
+    auto heh = mesh.get_half_edge_between(vertex_handles[3],vertex_handles[2]).unwrap();
+    mesh.set_knot_interval(heh, 2);
+    mesh.set_knot_interval(mesh.get_next(mesh.get_next(heh)), 2);
+}
+
 }
