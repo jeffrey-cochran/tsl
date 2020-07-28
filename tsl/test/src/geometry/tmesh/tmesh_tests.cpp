@@ -651,6 +651,65 @@ TEST_F(TmeshTestSplittingOperations, TestSetup) {
     auto heh = mesh.get_half_edge_between(vertex_handles[3], vertex_handles[2]).unwrap();
     EXPECT_TRUE(mesh.get_face_of_half_edge(heh));
     EXPECT_EQ(face_handles[1], mesh.get_face_of_half_edge(heh).unwrap());
+
+    // ensure that all knot intervals are as presented in the test
+    EXPECT_EQ(2.0, expect(mesh.get_knot_interval(heh), "knot interval should be valid for this halfedge in this test"));
+    EXPECT_EQ(1.0, expect(mesh.get_knot_interval(mesh.get_next(heh)), "knot interval should be valid for this halfedge in this test"));
+    EXPECT_EQ(2.0, expect(mesh.get_knot_interval(mesh.get_next(mesh.get_next(heh))), "knot interval should be valid for this halfedge in this test"));
+    EXPECT_EQ(1.0, expect(mesh.get_knot_interval(mesh.get_prev(heh)), "knot interval should be valid for this halfedge in this test"));
+
+    heh = mesh.get_twin(heh);
+    auto iter = heh;
+    do {
+        EXPECT_EQ(1.0, expect(mesh.get_knot_interval(iter), "knot interval should be valid for this halfedge in this test"));
+        iter = mesh.get_next(iter);
+    } while (iter != heh);
+}
+
+// test splitting of interior edge with different scales
+TEST_F(TmeshTestSplittingOperations, SplitInteriorEdge) {
+    // Split to the following configuration
+    // v4-----------------------------v5
+    // |              2                |
+    // |                               |
+    // |                               |
+    // |                               |
+    // | 1                           1 |
+    // |                               |
+    // |                               |
+    // |        4/3            2/3     |
+    // v3-----------------v6----------v2
+    // |        2/3            1/3     |
+    // |                               |
+    // |                               |
+    // |                               |
+    // | 1                           1 |
+    // |                               |
+    // |                               |
+    // |             1                 |
+    // v0-----------------------------v1
+    auto heh = mesh.get_half_edge_between(vertex_handles[3], vertex_handles[2]).unwrap();
+    bool is_control_mesh_vertex = false;
+//    auto split_vert = mesh.split_edge_at_interval(heh, 0.66666666666666667, is_control_mesh_vertex);
+//
+//    // Check correct number of vertices
+//    EXPECT_EQ(7, mesh.num_vertices());
+//    EXPECT_EQ(6, mesh.num_control_vertices());
+//    EXPECT_EQ(1, mesh.num_virtual_vertices());
+//
+//    // Check correct number of half-edges and edges
+//    EXPECT_EQ(16, mesh.num_half_edges());
+//    EXPECT_EQ(16, mesh.num_control_half_edges());
+//    EXPECT_EQ(0, mesh.num_virtual_half_edges());
+//    EXPECT_EQ(8, mesh.num_edges());
+//    EXPECT_EQ(8, mesh.num_control_edges());
+//    EXPECT_EQ(0, mesh.num_virtual_edges());
+//
+//    // Check knot intervals on the halfedges
+//    EXPECT_DOUBLE_EQ(4.0/3.0, expect(mesh.get_knot_interval(heh), "knot interval error"));
+//    EXPECT_DOUBLE_EQ(2.0/3.0, expect(mesh.get_knot_interval(mesh.get_next(heh)), "knot interval error"));
+//    EXPECT_DOUBLE_EQ(2.0/3.0, expect(mesh.get_knot_interval(mesh.get_twin(heh)), "knot interval error"));
+//    EXPECT_DOUBLE_EQ(1.0/3.0, expect(mesh.get_knot_interval(mesh.get_next(mesh.get_twin(heh))), "knot interval error"));
 }
 
 }
