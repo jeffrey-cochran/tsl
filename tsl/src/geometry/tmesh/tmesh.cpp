@@ -629,19 +629,39 @@ void tmesh::extend_to_bezier_mesh()
 	
 	// Step 1:
 	// store the edges two bays from each T-junction
-	// map from T-junction from halfedge to interior of opposite edge(s)
+	// map from T-junction from halfedge to interior of opposite edge(s)    
 	size_t num_t_junc = num_t_junctions();
-	sparse_half_edge_map<std::vector<edge_handle>> half_edge_to_opp_edge;
-	half_edge_to_opp_edge.reserve(num_t_junc);
-	// map from T-junction from halfedge to vertex on opposite edge (if it exists)
-	sparse_half_edge_map<vertex_handle> t_junc_to_vertex;
-	t_junc_to_vertex.reserve(num_t_junc);
+	sparse_half_edge_map<std::vector<tuple<half_edge_handle, double>>> t_junction_to_extension_edges;
+	t_junction_to_extension_edges.reserve(num_t_junc);
 
-	// Extract the locations in which edge extensions intersect the control polygon
-        get_edge_extension_data(half_edge_to_opp_edge, t_junc_to_vertex);
+	sparse_half_edge_map<std::vector<tuple<half_edge_handle, double>>> half_edge_to_t_junction_and_alpha;
+	half_edge_to_t_junction_and_alpha.reserve(3 * num_t_junc);
+	
+	sparse_face_map<std::vector<half_edge_handle>> face_to_t_junctions;
+	face_to_t_junctions.reserve(3 * num_t_junc);
+
+	// get the edge extension information for each t-junction
+	get_edge_extension_data(t_junction_to_extension_edges, half_edge_to_t_junction_and_alpha, face_to_t_junctions);
 
         // Step 2:
 	// iteratively split edge information
+	
+	// for each T-junction
+	//    iterate to the opposite side of the face and find the first edge in t_junction_to_extension_edges
+	//    if the split is in the interior of the edge (the tuple's double doesn't equal the half-edge's interval)
+	//        add a virtual vertex
+	//        delete this edge in t_junction_to_extension_edges map
+	//        delete this t_junction in half_edge_to_t_junction_and_alpha
+	//        modify all other t-junctions in which this he or its opposite is in half_edge_to_t_junction_and_alpha
+	//    split the face from the original t-junction to the newly-created split edge vertex
+	//        check all t-junctions which share the face... any that are transverse need to be assigned a number corresponding to this new edge
+	//        add a virtual edge
+	//        delete this t-junction from face to t-junction map
+	//        add virtual edges and computed alphas to edge to t_junction_to_extension_edges and half_edge_to_t_junction_and_alpha
+	//        modify face_to_t_junctions map
+	//    iterate to the opposite side of the most recently created split edge...
+	//        if face_to_t_junctions contains the current t-junction, perform same steps on this face
+	//        otherwise, we're done; go to the next t-junction in the t-junction map
 	
     }
 }
@@ -839,6 +859,78 @@ optional<double> tmesh::get_knot_factor(half_edge_handle handle) const {
         }
     }
     return nullopt;
+}
+
+void tmesh::get_opposite_location(
+	half_edge_handle init_heh,
+        double init_barycentric_interval,
+	half_edge_handle& terminal_heh,
+	double& terminal_barycentric_interval) {
+    // ensure that the corner information is defined on the input half-edge (i.e. we're on a face)
+    if (!corner(init_heh) || !from_corner(init_heh)) {
+        panic("Must split on a face, not border half edges");
+    }
+
+    // if it is on a corner, iterate to the next corner
+    if (expect(from_corner(init_heh), "Must split on a face, not a border half edge") && 
+	init_barycentric_interval == 0) {
+        terminal_heh = get_prev(init_heh);
+	do {
+            terminal_heh = get_prev(terminal_heh);
+	} while (expect(corner(terminal_heh), "faces should have well-defined corner halfedges"));
+	terminal_barycentric_interval = 1;
+        return;
+    } else if (expect(corner(init_heh), "Must split on a face, not a border half edge (2)") &&
+	       init_barycentric_interval == 1) {
+        terminal_heh = get_next(init_heh);
+	do {
+	    terminal_heh = get_next(terminal_heh);
+	} while (expect(from_corner(terminal_heh), "faces should ahve well-defined corner halfedges (2)"));
+	terminal_barycentric_interval = 0;
+        return;
+    }
+    double epsilon = 1e-12;
+    
+    // otherwise, we aren't at a corner; iterate to the opposite location
+    // initialize with location's uv coordinate at zero; account for the rest of the half-edge
+    double s = (1-init_barycentric_interval) * expect(get_knot_interval(init_heh), "knot intervals must be defined on the interior of faces");
+
+    bool is_zero_interval = expect(get_knot_interval(init_heh), "knot on interior of face should be well-defined") == 0;
+    // store knot interval information
+    auto iter = init_heh;
+    // iterate to a corner while summing intervals in s
+    while (!expect(corner(iter),"valid face should have corners defined")) {
+        iter = get_next(iter);
+	s += expect(get_knot_interval(iter), "knot on interior of face should be well-defined (3)");
+    }
+
+    // iterate to the next corner
+    do {
+        iter = get_next(iter);
+    } while (!expect(corner(iter), "valid face should have corners defined"));
+    
+    // iterate to the parametric domain across from the start location
+    double next_interval = expect(get_knot_interval(get_next(iter)), "knot on interior of face should be well-defined (4)");
+    while (s - next_interval > epsilon) {
+	s -= next_interval;
+        iter = get_next(iter);
+        next_interval = expect(get_knot_interval(get_next(iter)), "knot on interior of face should be well-defined (5)");
+    } while (s > epsilon);
+
+    // the next half-edge contains the opposite edge
+    // the next half-edge has zero length, so take this as a 0 interval
+    if (next_interval < epsilon) {
+        terminal_barycentric_interval = 1;
+	terminal_heh = get_next(iter);
+	return;
+    }
+    // find how far in until on the opposite side
+    terminal_barycentric_interval = s / next_interval;
+    if (terminal_barycentric_interval > 1-2*epsilon) {
+        terminal_barycentric_interval = 1;
+    }
+    terminal_heh = get_next(iter);
+    return;
 }
 
 // ========================================================================
@@ -1289,25 +1381,44 @@ void tmesh::edge_to_zero_knot_interval(half_edge_handle handle)
 }
 
 void tmesh::get_edge_extension_data(
-	sparse_half_edge_map<std::vector<edge_handle>>& half_edge_to_opp_edge,
-	sparse_half_edge_map<vertex_handle>& t_junction_to_vertex)
-{
-    // iterate over each halfedge; if it is not from a corner, transform two bays
+	sparse_half_edge_map<std::vector<tuple<half_edge_handle, double>>>& t_junction_to_extension_edges,
+	sparse_half_edge_map<std::vector<tuple<half_edge_handle, double>>>& half_edge_to_t_junction_and_alpha,
+	sparse_face_map<std::vector<half_edge_handle>>& face_to_t_junctions)
+    {
+    double eps = 1e-12;
+
+    // iterate over each halfedge
     for (const auto& heh: get_half_edges()) {
+	// border half-edges do not experience t-junction extension
 	if (is_border(heh)) {
 	    continue;
     	}
 	    
 	bool is_zero_interval;
 	auto is_to_corner = expect(corner(heh), "all non-border faces should have corner boolean well-defined");
-	// if it is not from a corner, it is a T-junction
+	// if it is not to a corner, it is a T-junction
 	if (!is_to_corner) {
+	    // map this to a new t_junction
+	    t_junction_to_extension_edges.insert(heh, std::vector<tuple<half_edge_handle, double>>());
+	    // assume that t-junction extensions do not transversely intersect (much)
+	    // this is a common assumption for analysis-suitable T-splines
+	    t_junction_to_extension_edges[heh].reserve(3);
+
+	    // map the face of this half-edge to a t-junction extension face
+	    auto fh = get_face_of_half_edge(heh).expect("the specified half-edge must have a face");
+	    if (!face_to_t_junctions.contains_key(fh)) {
+	        face_to_t_junctions.insert(fh, std::vector<half_edge_handle>());
+		face_to_t_junctions[fh].reserve(4); // conservatively estimate at most t-junctions ever cross this face
+	    }
+	    // note this t-junction as associated with this face
+	    face_to_t_junctions[fh].emplace_back(heh);
+
 	    // store knot interval information
 	    is_zero_interval = expect(get_knot_interval(heh), "knot on interior of face should be well-defined (1)") == 0;
 	    auto iter = get_next(heh);
-	    auto s = expect(get_knot_interval(iter),"knot on interior of face should be well-defined (2)"); 
+	    auto s = expect(get_knot_interval(iter), "knot on interior of face should be well-defined (2)"); 
 	    // iterate to a corner
-	    while (!expect(corner(iter),"valid face should have corners defined")) {
+	    while (!expect(corner(iter), "valid face should have corners defined")) {
 	        iter = get_next(iter);
 	        s += expect(get_knot_interval(iter), "knot on interior of face should be well-defined (3)");
 	    }
@@ -1318,25 +1429,40 @@ void tmesh::get_edge_extension_data(
 	    } while (!expect(corner(iter), "valid face should have corners defined"));
 
 	    // iterate to the parametric domain across from the T-junction
-            do {
-		iter = get_next(iter);
-		s -= expect(get_knot_interval(iter), "knot on interior of face should be well-defined (4)");
-	    } while (s > 1e-8);
+	    iter = get_next(heh);
+	    auto t = expect(get_knot_interval(iter), "knot on interior of face should be well-defined (4)");
+            // stop when half-edge reaches or passes the target domain
+	    while (t < s + eps) {
+		// decrement the parametric domain
+		s -= t;
+	        // iterate to the next half edge
+		iter = get_next(iter); 
+		// find length of the parametric domain
+		t = expect(get_knot_interval(iter), "knot on interior of face should be well-defined (4.5)");
+	    }
 
+	    // store this half-edge as mapping to the t-junction
+	    if (!half_edge_to_t_junction_and_alpha.contains_key(iter)) {
+		half_edge_to_t_junction_and_alpha.insert(iter, std::vector<tuple<half_edge_handle,double>>());
+		half_edge_to_t_junction_and_alpha[iter].reserve(2); // assume that no more than two T-junctions intersect this half edge
+	    }
 	    // if we're within epsilon of zero and the initial knot interval was not zero,
 	    // store the opposite vertex
 	    // TODO -- this assumes that we never have two T-junctions separated by a zero
 	    //         knot interval on a face... zero knot intervals are expected next to corners
-	    if (fabs(s) <= 1e-8 && !is_zero_interval) {
-		t_junction_to_vertex.insert(heh, get_target(iter));
+	    if (fabs(s-t) <= eps && !is_zero_interval) {
+		// mark this t-junction as exactly reaching an opposite vertex
+		t_junction_to_extension_edges[heh].emplace_back(iter, t);
+		half_edge_to_t_junction_and_alpha[iter].emplace_back(heh, t);
+		// stop here because the vertex was not virtual
 		continue;
 	    }
 	    // otherwise, we're in the interior of an existing edge and we do not align with an
 	    // existing T-junction on the opposite side	
 	    else {
-		half_edge_to_opp_edge.insert(heh, std::vector<edge_handle>());
-		half_edge_to_opp_edge[heh].reserve(2);
-		half_edge_to_opp_edge[heh].emplace_back(half_edge_to_edge(iter));
+		t_junction_to_extension_edges[heh].emplace_back(iter, s);
+		// store the value s < t telling the location in the half-edge at which splitting is to occur
+		half_edge_to_t_junction_and_alpha[iter].emplace_back(heh, s);
 	    }
 
 	    // stop if we've arrived at a border
@@ -1349,7 +1475,7 @@ void tmesh::get_edge_extension_data(
 
 	    // flip to the next face
 	    iter = get_twin(iter);
-	    s += f * expect(get_knot_interval(iter), "for a valide face, all half-edges next to T-junctions should have valid knot intervals");
+	    s += f * expect(get_knot_interval(iter), "for a valid face, all half-edges next to T-junctions should have valid knot intervals");
 	    while (!expect(corner(iter), "valid face should have corners defined")) {
 		iter = get_next(iter);
 		s += f * expect(get_knot_interval(iter), "for a valid face, all half-edges next to T-junctions should have valid knot intervals");
@@ -1361,23 +1487,46 @@ void tmesh::get_edge_extension_data(
 	    } while (!expect(corner(iter), "valid face should have corners defined"));
 		
 	    // iterate to the edge for splitting
-	    do {
+	    iter = get_next(iter);
+	    t = f * expect(get_knot_interval(iter), "knot on interior of face should be well-defined (5)");
+	    while (t < s + eps) {
+		s -= t;
 		iter = get_next(iter);
-		s -= f * expect(get_knot_interval(iter), "knot on interior of face should be well-defined (5)");
-	    } while (s > 1e-8);
+		t = f * expect(get_knot_interval(iter), "knot on interior of face should be well-defined (6)");
+	    }
 	
-	    // if we're within epsilon of zero and the initial knot interval was not zero,
+            if (!half_edge_to_t_junction_and_alpha.contains_key(iter)) {
+		half_edge_to_t_junction_and_alpha.insert(iter, std::vector<tuple<half_edge_handle,double>>());
+    	        half_edge_to_t_junction_and_alpha[iter].reserve(2); // assume that no more than two T-junctions intersect this half edge
+	    }
+	    // work in the current coordinate system
+	    auto terminal_interval = expect(get_knot_interval(iter), "knot on interior of face should be well-defined (7)");
+	    auto terminal_knot = s / f;
+
+	    // if we're within epsilon of the knot interval and the initial knot interval was not zero,
             // store the opposite vertex
             // TODO -- this assumes that we never have two T-junctions separated by a zero
 	    //         knot interval on a face... zero knot intervals are expected next to corners
-	    if (fabs(s) <= 1e-8 && !is_zero_interval) {
-		t_junction_to_vertex.insert(heh, get_target(iter));
+	    if (fabs(s-t) <= eps && !is_zero_interval) {
+		t_junction_to_extension_edges[heh].emplace_back(iter, terminal_interval);
+		half_edge_to_t_junction_and_alpha[iter].emplace_back(heh, terminal_interval);
 	    }
 	    // otherwise, we're in the interior of an existing edge and we do not align with an
 	    // existing T-junction on the opposite side	
 	    else {
-		half_edge_to_opp_edge[heh].emplace_back(half_edge_to_edge(iter));
+		t_junction_to_extension_edges[heh].emplace_back(iter, terminal_knot);
+		half_edge_to_t_junction_and_alpha[iter].emplace_back(heh, terminal_knot);
     	    }
+	    
+	    // map the face of the final half-edge to a t-junction extension face
+	    fh = get_face_of_half_edge(iter).expect("the specified half-edge must have a face");
+	    if (!face_to_t_junctions.contains_key(fh)) {
+	        face_to_t_junctions.insert(fh, std::vector<half_edge_handle>());
+		face_to_t_junctions[fh].reserve(4); // conservatively estimate at most t-junctions ever cross this face
+	    }
+	    // note this t-junction as associated with this face
+	    face_to_t_junctions[fh].emplace_back(heh);
+
         }
     }
 }
@@ -1529,6 +1678,32 @@ vertex_handle tmesh::split_edge_at_interval(half_edge_handle handle, double bary
     }
 
     return split_vh;
+}
+
+face_handle tmesh::split_face_at_t_junction(face_handle fh, vertex_handle vh) {
+    // check that the given vertex is a T-junction on the face; if not, terminate
+    // get the face's halfedge
+    auto face_heh = get_edge(fh);
+    auto iter_heh = face_heh;
+    bool found = false;
+    do {
+        if (get_target(iter_heh) == vh) {
+	    found = true;
+	    break;
+	}
+	iter_heh = get_next(iter_heh);
+    } while (iter_heh != face_heh);
+
+    // vertex not found in the face; return the initial face
+    if (!found) {
+        return fh;
+    }
+
+    // iterate to the opposite coordinate on the face
+    bool is_zero_interval;
+    auto is_to_corner = expect(corner(iter_heh), "all non-border faces should have corner boolean well-defined");
+    // if it is not to a corner, it is a T-junction
+    panic("not yet implemented");
 }
 
 }

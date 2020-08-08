@@ -264,6 +264,14 @@ public:
      */
     optional<double> get_knot_factor(half_edge_handle handle) const;
 
+    /**
+     * @brief Input a parametric location and iterate to find its opposite location on the face
+     */
+    void get_opposite_location(
+	    half_edge_handle init_heh, 
+	    double init_barycentric_interval,
+	    half_edge_handle& terminal_heh,
+	    double& terminal_barycentric_interval);
 
     // ========================================================================
     // = Set attributes
@@ -681,8 +689,9 @@ private:
      * @brief Get edge extension information for T-junctions
      */
     void get_edge_extension_data(
-	    sparse_half_edge_map<std::vector<edge_handle>>& half_edge_to_opp_edge,
-	    sparse_half_edge_map<vertex_handle>& t_junction_to_vertex);
+	    sparse_half_edge_map<std::vector<std::tuple<half_edge_handle, double>>>& t_junction_to_extension_edges,
+	    sparse_half_edge_map<std::vector<std::tuple<half_edge_handle, double>>>& half_edge_to_t_junction_and_alpha,
+	    sparse_face_map<std::vector<half_edge_handle>>& face_to_t_junctions);
 
     /**
      * @brief Attempts to find an edge between the given vertices and, if none
@@ -731,6 +740,15 @@ private:
      *      that there is a zero-interval next to the half-edges target vertex
      */
     vertex_handle split_edge_at_interval(half_edge_handle handle, double barycentric_interval, bool is_control_mesh_vertex);
+
+    /**
+     * @brief Splits a face at the specified T-junction
+     *
+     * @return Return the new face created by the splitting operation (the other will be reused)
+     *
+     * Split a face at a half-edge. If the other side of the face is not already split, split it also
+     */
+    face_handle split_face_at_t_junction(face_handle fh, vertex_handle vh);
 
     /**
      * @brief Circulates around the vertex `vh`, calling the `visitor` for each
