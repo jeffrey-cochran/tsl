@@ -734,12 +734,14 @@ private:
     /**
      * @brief Splits an edge at the specified interval into two edges and a new vertex
      *
+     * @return half edge handle whose target is the new vertex
+     *
      * Split the half-edge at the specified barycentric interval location.
      * Note that 0 of the barycentric location means that there is a zero-interval
      *      next to the half-edge's from vertex, while 1 barycentric location means
      *      that there is a zero-interval next to the half-edges target vertex
      */
-    vertex_handle split_edge_at_interval(half_edge_handle handle, double barycentric_interval, bool is_control_mesh_vertex);
+    half_edge_handle split_edge_at_interval(half_edge_handle handle, double barycentric_interval, bool is_control_mesh_vertex);
 
     /**
      * @brief Splits a face at the specified T-junction
@@ -749,6 +751,19 @@ private:
      * Split a face at a half-edge. If the other side of the face is not already split, split it also
      */
     face_handle split_face_at_t_junction(face_handle fh, vertex_handle vh);
+
+    /**
+     * @brief Splits a face at the specified T-junction
+     *
+     * @return The new half-edge whose target is the vertex extending the T-junction
+     *
+     * Split a face at a half-edge. Input a half edge handle to a t-junction to be split.
+     *     If the handle does not reach to a T-junction, terminate and return a null pointer
+     *     Input also dictates if the split is to use a virtual edge or a control mesh edge
+     *     Reference output will tell if the split edge on the other side of the T-junction
+     *     is virtual or is a control mesh edge
+     */
+     optional_half_edge_handle split_face_at_t_junction(half_edge_handle handle, bool split_to_control_mesh, bool extend_virtual_veritices, bool& opposite_edge_is_virtual);
 
     /**
      * @brief Circulates around the vertex `vh`, calling the `visitor` for each

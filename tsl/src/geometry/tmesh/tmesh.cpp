@@ -1575,7 +1575,7 @@ edge_handle tmesh::half_to_full_edge_handle(half_edge_handle handle) const {
     return edge_handle(min(twin.get_idx(), handle.get_idx()));
 }
 
-vertex_handle tmesh::split_edge_at_interval(half_edge_handle handle, double barycentric_interval, bool is_control_mesh_vertex) {
+half_edge_handle tmesh::split_edge_at_interval(half_edge_handle handle, double barycentric_interval, bool is_control_mesh_vertex) {
     if (barycentric_interval < 0) {
         panic("Cannot process negative barycentric interval");
     } else if (barycentric_interval > 1) {
@@ -1603,6 +1603,20 @@ vertex_handle tmesh::split_edge_at_interval(half_edge_handle handle, double bary
         ++count_virtual_vertices;
     }
 
+
+    //    ------------init_opp--------------------->
+    //  x--------------------------------------------x
+    //  v1  <---------init_he----------------------- v2
+    //
+    //  Goes to
+    //
+    //
+    //       new_opp              init_opp
+    //     -------------->   ---------------------->
+    //  x------------------x-------------------------x
+    //  v1 <------------- v3 <---------------------- v2
+    //       new_he               init_he
+
     // CREATE NEW HALFEDGE DATA
     auto new_heh = find_or_create_edge_between(split_vh,to_vh);
     auto init_twin_h = get_twin(handle);
@@ -1622,7 +1636,7 @@ vertex_handle tmesh::split_edge_at_interval(half_edge_handle handle, double bary
         new_he.face = optional_face_handle(get_face_of_half_edge(handle));
     }
     if (get_face_of_half_edge(init_twin_h)) {
-        new_opp.face = optional_face_handle(get_face_of_half_edge(handle));
+        new_opp.face = optional_face_handle(get_face_of_half_edge(init_twin_h));
     }
     // target data already complete
     // next data
@@ -1661,9 +1675,9 @@ vertex_handle tmesh::split_edge_at_interval(half_edge_handle handle, double bary
     // modify outgoing if necessary on existing vertex
     if (get_out(to_vh)) {
         if (get_out(to_vh).unwrap() == init_twin_h) {
-	    auto& v = get_v(get_target(handle));
-	    v.outgoing = optional_half_edge_handle(get_twin(new_heh));
-	}
+            auto& v = get_v(get_target(handle));
+            v.outgoing = optional_half_edge_handle(get_twin(new_heh));
+        }
     }
 
     // finally, modify the original half-edges
@@ -1677,7 +1691,9 @@ vertex_handle tmesh::split_edge_at_interval(half_edge_handle handle, double bary
         init_opp.knot = barycentric_interval * expect(init_opp.knot, "error in expect function (3)");
     }
 
-    return split_vh;
+    // return the half edge whose target points to the created vertex
+    // (on the same face as the original half edge)
+    return handle;
 }
 
 face_handle tmesh::split_face_at_t_junction(face_handle fh, vertex_handle vh) {
@@ -1704,6 +1720,92 @@ face_handle tmesh::split_face_at_t_junction(face_handle fh, vertex_handle vh) {
     auto is_to_corner = expect(corner(iter_heh), "all non-border faces should have corner boolean well-defined");
     // if it is not to a corner, it is a T-junction
     panic("not yet implemented");
+}
+
+optional_half_edge_handle tmesh::split_face_at_t_junction(half_edge_handle handle, bool split_to_control_mesh, bool extend_virtual_vertices, bool& opposite_edge_is_virtual) {
+    // ----------------------------------------
+    // Preprocess for validity
+    // ----------------------------------------
+
+    // do not operate on border half edges
+    if (is_border(handle)) {
+        return optional_half_edge_handle(); // an empty handle
+    }
+    // check that the input half edge is a t-junction.
+    // (1) corners are defined on the mesh
+    // (2) this half edge handle is a corner 
+    else if (corner(handle) && *corner(handle)) {
+        return optional_half_edge_handle(); // an empty handle
+    }
+    // the edge is a T-junction, but it is virtual
+    // do not extend if we are instructed not to extend
+    else if(!extend_virtual_vertices && !is_control_vertex(get_target(handle))) {
+        return optional_half_edge_handle(); // an empty handle
+    }
+
+    // the half edge points to a T-junction and the T-junction is to be extended
+    double eps = 1e-12;
+
+    // ------------------------------------------
+    // Iterate to the opposite side of T-junction
+    // ------------------------------------------
+	
+    bool is_zero_interval;
+    // map the face of this half-edge to a t-junction extension face
+    auto fh = get_face_of_half_edge(handle).expect("the specified half-edge must have a face");
+    // note this t-junction as associated with this face
+
+    // store knot interval information
+    is_zero_interval = expect(get_knot_interval(handle), "knot on interior of face should be well-defined (1)") == 0;
+    auto iter = get_next(handle);
+    auto s = expect(get_knot_interval(iter), "knot on interior of face should be well-defined (2)"); 
+    // iterate to a corner
+    while (!expect(corner(iter), "valid face should have corners defined")) {
+        iter = get_next(iter);
+        s += expect(get_knot_interval(iter), "knot on interior of face should be well-defined (3)");
+    }
+
+    // iterate to the next corner
+    do {
+		iter = get_next(iter);
+    } while (!expect(corner(iter), "valid face should have corners defined"));
+
+    // iterate to the parametric domain across from the T-junction
+    iter = get_next(iter);
+    auto t = expect(get_knot_interval(iter), "knot on interior of face should be well-defined (4)");
+    // stop when half-edge reaches or passes the target domain
+    while (t < s + eps) {
+		// decrement the parametric domain
+		s -= t;
+	        // iterate to the next half edge
+		iter = get_next(iter); 
+		// find length of the parametric domain
+		t = expect(get_knot_interval(iter), "knot on interior of face should be well-defined (4.5)");
+    }
+
+    // ----------------------------------------
+    // Split the edge
+    // ----------------------------------------
+
+    // if we're within epsilon of zero and the initial knot interval was not zero,
+    // store the opposite vertex
+    // TODO -- this assumes that we never have two T-junctions separated by a zero
+    //         knot interval on a face... zero knot intervals are expected next to corners
+    if (fabs(s-t) <= eps && !is_zero_interval) {
+		// mark this t-junction as exactly reaching an opposite vertex
+        // ...
+        // TODO
+        // split face from the original half edge's target vertex to the target vertex of this half edge
+    }
+    // otherwise, we're in the interior of an existing edge and we do not align with an
+    // existing T-junction on the opposite side	
+    else {
+        // TODO -- split the edge here... convert from interval to barycentric coordinates
+        // TODO -- split the face from original half edge's target vertex to the split edge
+    }
+    // TODO
+    panic("not yet implemented");
+
 }
 
 }
