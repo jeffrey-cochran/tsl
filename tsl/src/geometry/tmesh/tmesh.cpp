@@ -1766,10 +1766,12 @@ optional_half_edge_handle tmesh::split_face_at_t_junction(half_edge_handle handl
     }
 
     // iterate to the next corner
-    do {
+    iter = get_next(iter);
+    auto transverse_s = expect(get_knot_interval(iter), "knot in transverse direction should be well-defined (1)");
+    while (!expect(corner(iter), "valid face should have corners defined")) {
 		iter = get_next(iter);
-    } while (!expect(corner(iter), "valid face should have corners defined"));
-
+        transverse_s += expect(get_knot_interval(iter), "knot in transverse direction should be well-defined (2)");
+    } 
     // iterate to the parametric domain across from the T-junction
     iter = get_next(iter);
     auto t = expect(get_knot_interval(iter), "knot on interior of face should be well-defined (4)");
@@ -1777,14 +1779,14 @@ optional_half_edge_handle tmesh::split_face_at_t_junction(half_edge_handle handl
     while (t < s + eps) {
 		// decrement the parametric domain
 		s -= t;
-	        // iterate to the next half edge
+	    // iterate to the next half edge
 		iter = get_next(iter); 
 		// find length of the parametric domain
 		t = expect(get_knot_interval(iter), "knot on interior of face should be well-defined (4.5)");
     }
 
     // ----------------------------------------
-    // Split the edge
+    // Split the topology
     // ----------------------------------------
 
     // if we're within epsilon of zero and the initial knot interval was not zero,
@@ -1803,9 +1805,16 @@ optional_half_edge_handle tmesh::split_face_at_t_junction(half_edge_handle handl
         // TODO -- split the edge here... convert from interval to barycentric coordinates
         // TODO -- split the face from original half edge's target vertex to the split edge
     }
-    // TODO
-    panic("not yet implemented");
 
+    // TODO account for corners of half-edges appropriately on these new, split edges
+    split_t_face_at_half_edges(handle, iter, split_to_control_mesh, transverse_s);
+    // return the half edge pointing to the vertex extending the input t-junction
+    return optional_half_edge_handle(iter);
+}
+
+void tmesh::split_t_face_at_half_edges(half_edge_handle h1, half_edge_handle h2, bool split_to_control_mesh, double interval_length)
+{
+    panic("not yet implemented");
 }
 
 }

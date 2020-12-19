@@ -766,6 +766,15 @@ private:
      optional_half_edge_handle split_face_at_t_junction(half_edge_handle handle, bool split_to_control_mesh, bool extend_virtual_veritices, bool& opposite_edge_is_virtual);
 
     /**
+     * @brief helper function to split face at two given vertices that are targets of input halfedges
+     *
+     * Input two half-edges, at least one of which points to a t-junction.
+     *     Split the face with either a virtual edge or a control mesh edge
+     *     with interval length as that input
+     */
+     void split_t_face_at_half_edges(half_edge_handle h1, half_edge_handle h2, bool split_to_control_mesh, double interval_length);
+
+    /**
      * @brief Circulates around the vertex `vh`, calling the `visitor` for each
      *        edge of the vertex. If the in or outgoing edges are visited is
      *        determined by the way parameter.
