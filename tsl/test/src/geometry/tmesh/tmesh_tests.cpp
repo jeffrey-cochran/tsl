@@ -735,11 +735,27 @@ TEST_F(TmeshTestBezierMeshExtraction, TestSetup) {
         }
     }
 
-    print("Number of borders is {}", n_border);
     EXPECT_EQ(13, n_border);
     EXPECT_EQ(32, n_one_interval);
     EXPECT_EQ(5, n_two_interval);
     EXPECT_EQ(1, n_t_junction);
+}
+
+TEST_F(TmeshTestBezierMeshExtraction, ExtractBezierMesh) {
+    EXPECT_EQ(17, mesh.num_control_vertices());
+    EXPECT_EQ(0, mesh.num_virtual_vertices());
+    EXPECT_EQ(9, mesh.num_faces());
+    EXPECT_EQ(50, mesh.num_control_half_edges());
+    EXPECT_EQ(0, mesh.num_virtual_half_edges());
+
+    // perform Bezier mesh extraction
+    mesh.extend_to_bezier_mesh();
+
+    EXPECT_EQ(17, mesh.num_control_vertices());
+    EXPECT_EQ(2, mesh.num_virtual_vertices());
+    EXPECT_EQ(11, mesh.num_faces());
+    EXPECT_EQ(54, mesh.num_control_half_edges());
+    EXPECT_EQ(4, mesh.num_virtual_half_edges());
 }
 
 }

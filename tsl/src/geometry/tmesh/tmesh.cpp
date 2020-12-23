@@ -627,14 +627,14 @@ void tmesh::extend_to_bezier_mesh()
         // iterate through each t-junction
         for(const auto& heh: get_half_edges())
         {
-            auto temp = from_corner(heh);
+            auto temp = corner(heh);
             if (temp) {
                 if (!(*temp)) {
                     t_juncs.push_back(heh);
                 }
             }
         }
-        
+       
         // iterate through all t-junctions
         int max_iter_n = 100;
         int curr_iter_n = 0;
@@ -1518,10 +1518,11 @@ optional_half_edge_handle tmesh::split_face_at_t_junction(half_edge_handle handl
         // convert from interval to barycentric coordinates
         auto minval = s-t;
         auto maxval = s;
+
         // we are looking for the point 0 in the interval [s-t, s] and converting this location
         //    to \xi in [0, 1]
         // this translates into the following
-        auto xi = minval / (minval + maxval);
+        auto xi = 1 - s / t;
         // now that we have converted to barycentric coordinates, split the edge
         iter = split_edge_at_interval(iter, xi, split_to_control_mesh);
         // TODO -- split the face from original half edge's target vertex to the split edge
@@ -1671,9 +1672,9 @@ void tmesh::split_t_face_at_half_edges(half_edge_handle h1, half_edge_handle h2,
     //
 
     // ensure proper input
-    if(!expect(corner(h1), "handle 1 should have corners defined")) 
+    if(expect(corner(h1), "handle 1 should have corners defined")) 
         panic("Handle 1 should point to a T-junction");
-    if(!expect(corner(h2), "handle 2 should have corners defined"))
+    if(expect(corner(h2), "handle 2 should have corners defined"))
         panic("Handle 2 should point to a T-junction");
 
     // extract the T-junctions
