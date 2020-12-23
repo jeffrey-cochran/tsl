@@ -522,7 +522,7 @@ public:
      */
      edge_handle half_edge_to_edge(half_edge_handle handle) const 
      { 
-	 return half_to_full_edge_handle(handle);
+         return half_to_full_edge_handle(handle);
      }
 
     /**
@@ -686,14 +686,6 @@ private:
     void edge_to_zero_knot_interval(half_edge_handle handle);
 
     /**
-     * @brief Get edge extension information for T-junctions
-     */
-    void get_edge_extension_data(
-	    sparse_half_edge_map<std::vector<std::tuple<half_edge_handle, double>>>& t_junction_to_extension_edges,
-	    sparse_half_edge_map<std::vector<std::tuple<half_edge_handle, double>>>& half_edge_to_t_junction_and_alpha,
-	    sparse_face_map<std::vector<half_edge_handle>>& face_to_t_junctions);
-
-    /**
      * @brief Attempts to find an edge between the given vertices and, if none
      *        is found, creates a new edge with `add_edge_pair()`
      *
@@ -734,7 +726,9 @@ private:
     /**
      * @brief Splits a face at the specified T-junction
      *
-     * @return The new half-edge whose target is the vertex extending the T-junction
+     * @return The new half-edge of the original face
+     *         whose target is the vertex extending the T-junction
+     *
      *
      * Split a face at a half-edge. Input a half edge handle to a t-junction to be split.
      *     If the handle does not reach to a T-junction, terminate and return a null pointer
@@ -742,7 +736,7 @@ private:
      *     Reference output will tell if the split edge on the other side of the T-junction
      *     is virtual or is a control mesh edge
      */
-     optional_half_edge_handle split_face_at_t_junction(half_edge_handle handle, bool split_to_control_mesh, bool extend_virtual_veritices, bool& opposite_edge_is_virtual);
+     optional_half_edge_handle split_face_at_t_junction(half_edge_handle handle, bool split_to_control_mesh, bool extend_virtual_veritices);
 
     /**
      * @brief Splits an edge at the specified interval into two edges and a new vertex

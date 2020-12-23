@@ -41,7 +41,7 @@ private:
     /**
      * @brief Initializes all fields with dummy values (unsafe, thus private).
      */
-    half_edge() : target(0), next(0), prev(0) {}
+    half_edge() : target(0), next(0), prev(0), control_mesh_half_edge(true) {}
 
     /// Several methods of T-Mesh need to invoke the unsafe ctor.
     friend class tmesh;
