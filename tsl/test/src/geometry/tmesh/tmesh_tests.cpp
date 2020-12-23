@@ -1,10 +1,12 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <fmt/core.h>
 
 #include "tsl/geometry/tmesh/tmesh.hpp"
 #include "tsl_tests/geometry/tmesh/tmesh_fixtures.hpp"
 
 using namespace tsl;
+using fmt::print;
 
 namespace tsl_tests {
 
@@ -710,6 +712,34 @@ TEST_F(TmeshTestSplittingOperations, SplitInteriorEdge) {
 //    EXPECT_DOUBLE_EQ(2.0/3.0, expect(mesh.get_knot_interval(mesh.get_next(heh)), "knot interval error"));
 //    EXPECT_DOUBLE_EQ(2.0/3.0, expect(mesh.get_knot_interval(mesh.get_twin(heh)), "knot interval error"));
 //    EXPECT_DOUBLE_EQ(1.0/3.0, expect(mesh.get_knot_interval(mesh.get_next(mesh.get_twin(heh))), "knot interval error"));
+}
+
+TEST_F(TmeshTestBezierMeshExtraction, TestSetup) {
+    // ensure proper setup of mesh
+    int n_border = 0;
+    int n_one_interval = 0;
+    int n_two_interval = 0;
+    int n_t_junction = 0;
+    for(const auto& handle : mesh.get_half_edges())
+    {
+        if(mesh.is_border(handle))
+            ++n_border;
+        else {
+            if(expect(mesh.get_knot_interval(handle), "all interior half-edges should have a well-defined knot interval") == 1.0)
+                ++n_one_interval;
+            else
+                ++n_two_interval;
+
+            if(!expect(mesh.corner(handle), "All interior half-edges should have a well-defined set of corner vertices"))
+                ++n_t_junction;
+        }
+    }
+
+    print("Number of borders is {}", n_border);
+    EXPECT_EQ(13, n_border);
+    EXPECT_EQ(32, n_one_interval);
+    EXPECT_EQ(5, n_two_interval);
+    EXPECT_EQ(1, n_t_junction);
 }
 
 }

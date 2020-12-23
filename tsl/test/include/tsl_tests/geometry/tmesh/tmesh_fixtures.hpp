@@ -49,6 +49,15 @@ protected:
     vector<face_handle> face_handles;
 };
 
+class TmeshTestBezierMeshExtraction : public ::testing::Test {
+protected:
+    void SetUp() override;
+
+    tmesh mesh;
+    vector<vertex_handle> vertex_handles;
+    vector<face_handle> face_handles;
+};
+
 }
 
 #endif //TEST_INCLUDE_TSL_TESTS_GEOMETRY_TMESH_TMESH_FIXTURES_HPP

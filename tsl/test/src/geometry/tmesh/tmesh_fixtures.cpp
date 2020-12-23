@@ -340,4 +340,75 @@ void TmeshTestSplittingOperations::SetUp() {
     mesh.set_knot_interval(mesh.get_next(mesh.get_next(heh)), 2);
 }
 
+void TmeshTestBezierMeshExtraction::SetUp() {
+    // Create the following structure
+    // v14-----------v15-----------------------v16
+    //  |             |                         |
+    //  |     f7      |            f8           |
+    //  |             |                         |
+    //  |             |                         |
+    // v11-----------v12-----------------------v13
+    //  |             |                         |
+    //  |     f5      |            f6           |
+    //  |             |                         |
+    //  |             |                         |
+    // v8------------v9------------------------v10
+    //  |             |                         |
+    //  |     f3      |            f4           |
+    //  |             |                         |
+    //  |             |                         |
+    // v4------------v5------------v6----------v7
+    //  |             |             |           |
+    //  |     f0      |      f1     |    f2     |
+    //  |             |             |           |
+    //  |             |             |           |
+    // v0------------v1------------v2----------v3
+    
+    vertex_handles.push_back(mesh.add_vertex(vec3(0,0,0), true)); // v0
+    vertex_handles.push_back(mesh.add_vertex(vec3(1,0,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(2,0,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(3,0,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(0,1,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(1,1,0), true)); // v5
+    vertex_handles.push_back(mesh.add_vertex(vec3(2,1,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(3,1,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(0,2,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(1,2,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(3,2,0), true)); // v10
+    vertex_handles.push_back(mesh.add_vertex(vec3(0,3,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(1,3,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(3,3,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(0,4,0), true));
+    vertex_handles.push_back(mesh.add_vertex(vec3(1,4,0), true)); // v15
+    vertex_handles.push_back(mesh.add_vertex(vec3(3,4,0), true));
+
+    // face handle definition
+    face_handles.push_back(mesh.add_face({vertex_handles[0], vertex_handles[1], vertex_handles[5], vertex_handles[4]}));
+    face_handles.push_back(mesh.add_face({vertex_handles[1], vertex_handles[2], vertex_handles[6], vertex_handles[5]}));
+    face_handles.push_back(mesh.add_face({vertex_handles[2], vertex_handles[3], vertex_handles[7], vertex_handles[6]}));
+    face_handles.push_back(mesh.add_face({vertex_handles[4], vertex_handles[5], vertex_handles[9], vertex_handles[8]}));
+    face_handles.push_back(mesh.add_face({
+                                        new_face_vertex(vertex_handles[5]),
+                                        new_face_vertex(vertex_handles[6], false, 1.0),
+                                        new_face_vertex(vertex_handles[7]),
+                                        new_face_vertex(vertex_handles[10]),
+                                        new_face_vertex(vertex_handles[9], true, 2.0)
+                                        }));
+    face_handles.push_back(mesh.add_face({vertex_handles[8], vertex_handles[9], vertex_handles[12], vertex_handles[11]}));
+    face_handles.push_back(mesh.add_face({
+                                        new_face_vertex(vertex_handles[9]),
+                                        new_face_vertex(vertex_handles[10], true, 2.0),
+                                        new_face_vertex(vertex_handles[13]),
+                                        new_face_vertex(vertex_handles[12], true, 2.0)
+                                        }));
+    face_handles.push_back(mesh.add_face({vertex_handles[11], vertex_handles[12], vertex_handles[15], vertex_handles[14]}));
+    face_handles.push_back(mesh.add_face({
+                                        new_face_vertex(vertex_handles[12]),
+                                        new_face_vertex(vertex_handles[13], true, 2.0),
+                                        new_face_vertex(vertex_handles[16]),
+                                        new_face_vertex(vertex_handles[15], true, 2.0)
+                                        }));
+
+}
+
 }

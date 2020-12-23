@@ -607,8 +607,8 @@ void tmesh::zero_transverse_boundary_edge_knot_intervals()
 	        // iterate and make all half-edges transverse to the boundary have zero knot interval
 	        for (const auto& heh: get_half_edges_of_vertex(vh, edge_direction::outgoing)) {
                     if (!is_border(heh) && !is_border(get_twin(heh))) {
-	                edge_to_zero_knot_interval(heh);
-		    }
+                        edge_to_zero_knot_interval(heh);
+                    }
 	        }
 	    }
         }            
