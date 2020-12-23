@@ -732,27 +732,6 @@ private:
     edge_handle half_to_full_edge_handle(half_edge_handle handle) const;
 
     /**
-     * @brief Splits an edge at the specified interval into two edges and a new vertex
-     *
-     * @return half edge handle whose target is the new vertex
-     *
-     * Split the half-edge at the specified barycentric interval location.
-     * Note that 0 of the barycentric location means that there is a zero-interval
-     *      next to the half-edge's from vertex, while 1 barycentric location means
-     *      that there is a zero-interval next to the half-edges target vertex
-     */
-    half_edge_handle split_edge_at_interval(half_edge_handle handle, double barycentric_interval, bool is_control_mesh_vertex);
-
-    /**
-     * @brief Splits a face at the specified T-junction
-     *
-     * @return Return the new face created by the splitting operation (the other will be reused)
-     *
-     * Split a face at a half-edge. If the other side of the face is not already split, split it also
-     */
-    face_handle split_face_at_t_junction(face_handle fh, vertex_handle vh);
-
-    /**
      * @brief Splits a face at the specified T-junction
      *
      * @return The new half-edge whose target is the vertex extending the T-junction
@@ -764,6 +743,18 @@ private:
      *     is virtual or is a control mesh edge
      */
      optional_half_edge_handle split_face_at_t_junction(half_edge_handle handle, bool split_to_control_mesh, bool extend_virtual_veritices, bool& opposite_edge_is_virtual);
+
+    /**
+     * @brief Splits an edge at the specified interval into two edges and a new vertex
+     *
+     * @return half edge handle whose target is the new vertex
+     *
+     * Split the half-edge at the specified barycentric interval location.
+     * Note that 0 of the barycentric location means that there is a zero-interval
+     *      next to the half-edge's from vertex, while 1 barycentric location means
+     *      that there is a zero-interval next to the half-edges target vertex
+     */
+    half_edge_handle split_edge_at_interval(half_edge_handle handle, double barycentric_interval, bool is_control_mesh_vertex);
 
     /**
      * @brief helper function to split face at two given vertices that are targets of input halfedges
