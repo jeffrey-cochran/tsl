@@ -127,6 +127,13 @@ public:
      */
     void extend_to_bezier_mesh();
 
+    /**
+     * @brief Extract the control mesh from a bezier mesh
+     *
+     * @return Returns a new t-mesh without any Bezier (virtual) vertices or edges
+     */
+    tmesh extract_control_mesh();
+
     // ========================================================================
     // = Get numbers
     // ========================================================================
@@ -619,6 +626,12 @@ public:
      *        is returned. None otherwise.
      */
     optional_half_edge_handle get_half_edge_between(face_handle ah, face_handle bh) const;
+
+    /**
+     * @brief Get the next half-edge pointing to the corner, as well as knot interval between
+     *        input from_vertex and the corner
+     */
+    half_edge_handle get_next_corner_half_edge(half_edge_handle, double& knot_interval);
 
     // ========================================================================
     // = Iterator helper

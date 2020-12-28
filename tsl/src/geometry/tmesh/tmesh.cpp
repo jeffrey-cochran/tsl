@@ -678,6 +678,11 @@ void tmesh::extend_to_bezier_mesh()
     }
 }
 
+tmesh tmesh::extract_control_mesh()
+{
+    tmesh cntrl_mesh;
+    panic("not yet implemented");
+}
 // ========================================================================
 // = Get numbers
 // ========================================================================
@@ -808,43 +813,43 @@ optional<bool> tmesh::facial_parametric_domain_is_degenerate(face_handle handle)
     int corner_count = 0;
     for (auto const& heh: get_half_edges_of_face(handle)) {
         // iterate to a corner of the face
-	if (!found_corner) {
-	    auto temp = from_corner(heh);
-	    if (temp) {
-	        found_corner = *temp;
-	    } else {
-	        // no corners are found
-		return nullopt;
-	    }
-	    continue;
-	}
-	else {
-	    auto knot_interval = get_knot_interval(heh);
-	    //knot interval is defined
-	    if (knot_interval) {
-		// knot interval is greater than zer0
-		if (*knot_interval > 0) {
-		    // non-zero intervals in two parametric dimensions
-		    if (one_parametric_dimension && corner_count > 0) {
-		        return false;
-		    } else {
-			// non-zero interval in one parametric dimension
-		        one_parametric_dimension = true;
-		    }
-		}
-		// if we reach a corner, iterate
-		if (expect(corner(heh), "Cannot have corners only defined in part of the facial domain")) {
-		    ++corner_count;
-		    if (corner_count == 2) {
-		        return true;
-		    }
-		}
-	    }
-	    // knot intervals are not defined
-	    else {
-	        return nullopt;
-	    }
-	}
+        if (!found_corner) {
+            auto temp = from_corner(heh);
+            if (temp) {
+                found_corner = *temp;
+            } else {
+                // no corners are found
+                return nullopt;
+            }
+            continue;
+        }
+        else {
+            auto knot_interval = get_knot_interval(heh);
+            //knot interval is defined
+            if (knot_interval) {
+                // knot interval is greater than zer0
+                if (*knot_interval > 0) {
+                    // non-zero intervals in two parametric dimensions
+                    if (one_parametric_dimension && corner_count > 0) {
+                        return false;
+                    } else {
+                        // non-zero interval in one parametric dimension
+                        one_parametric_dimension = true;
+                    }
+                }
+                // if we reach a corner, iterate
+                if (expect(corner(heh), "Cannot have corners only defined in part of the facial domain")) {
+                    ++corner_count;
+                    if (corner_count == 2) {
+                        return true;
+                    }
+                }
+            }
+            // knot intervals are not defined
+            else {
+                return nullopt;
+            }
+        }
     }
 
     // default (which should never be hit
@@ -1269,6 +1274,22 @@ optional_half_edge_handle tmesh::get_half_edge_between(face_handle ah, face_hand
     return out;
 }
 
+half_edge_handle tmesh::get_next_corner_half_edge(half_edge_handle handle, double& knot_interval)
+{
+    auto iter = handle;
+    knot_interval = expect(get_knot_interval(iter), "This function assumes that knot intervals are well-defined");
+    while (!expect(corner(iter), "Corners should be well-defined by assumption on this function")) {
+        iter = get_next(iter);
+        knot_interval += expect(get_knot_interval(iter), "This function assumes that knot intervals are well-defined");
+    
+        if (iter == handle)
+            panic("Iteration returned to input half edge");
+    }
+
+    return iter;
+    
+}
+
 // ========================================================================
 // = Iterator helper
 // ========================================================================
@@ -1515,10 +1536,6 @@ optional_half_edge_handle tmesh::split_face_at_t_junction(half_edge_handle handl
     // otherwise, we're in the interior of an existing edge and we do not align with an
     // existing T-junction on the opposite side	
     else {
-        // convert from interval to barycentric coordinates
-        auto minval = s-t;
-        auto maxval = s;
-
         // we are looking for the point 0 in the interval [s-t, s] and converting this location
         //    to \xi in [0, 1]
         // this translates into the following
